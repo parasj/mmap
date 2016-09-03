@@ -13,6 +13,8 @@
 
 #define CMDBUF_SIZE 80 // enough for one VGA text line
 
+struct Trapframe {
+};
 
 struct Command {
   const char *name;
@@ -59,7 +61,31 @@ mon_infokern(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-  // Your code here.
+  cprintf("Stack backtrace:\n");
+  int* ebp = (int*) read_ebp();
+  int* nextebp = ebp;
+
+  while (nextebp != 0x0) {
+
+    ebp = nextebp;
+    nextebp = (int*) *nextebp;
+
+    cprintf("  ebp %x eip %x args", ebp, *(ebp + 1));
+
+    int count = 0;
+    ebp += 1;
+    // +2 is so we don't run into the next stack frame
+    while (ebp + 2 != nextebp) {
+      ebp += 1;
+      count += 1;
+      cprintf(" %08x", *ebp);
+      if (count >= 5 && nextebp == 0x0) {
+        break;
+      }
+    }
+
+    cprintf("\n");
+  }
   return 0;
 }
 

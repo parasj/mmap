@@ -1,0 +1,7 @@
+
+#+TITLE: Stuff For Myself
+#+AUTHOR: Jay Kamat
+#+EMAIL: jaygkamat@gmail.com
+
+* Q9
+- Stack starts at 0xF0110000
