@@ -183,7 +183,8 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
   if (lline == 0) {
     return -1;
   } else {
-    info->eip_line = (stabs[lline].n_desc);
+    // I dunno why it gets the next line but it does.
+    info->eip_line = (stabs[lline - 1].n_desc);
   }
 
 
