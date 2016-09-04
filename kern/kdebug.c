@@ -179,14 +179,12 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
   //	Look at the STABS documentation and <inc/stab.h> to find
   //	which one.
   // LAB 1: Your code here.
-  int mlline = lline;
-  int mrline = rline;
-  stab_binsearch(stabs, &mlline, &mrline, N_SLINE, info->eip_fn_addr);
-  if (mlline == 0) {
+  stab_binsearch(stabs, &lline, &rline, N_SLINE, info->eip_fn_addr);
+  if (lline == 0) {
     return -1;
   } else {
     // I dunno why it gets the next line but it does.
-    info->eip_line = (stabs[mlline - 1].n_desc);
+    info->eip_line = (stabs[lline - 1].n_desc);
   }
 
 
