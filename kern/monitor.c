@@ -89,7 +89,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
     // print info about the debug symbols
     struct Eipdebuginfo dbug;
     debuginfo_eip(eip, &dbug);
-    cprintf("         %s:%d: %.*s+%d\n", dbug.eip_file, dbug.eip_line, dbug.eip_fn_namelen, dbug.eip_fn_name, dbug.eip_fn_narg);
+    cprintf("         %s:%d: %.*s+%d\n", dbug.eip_file, dbug.eip_line, dbug.eip_fn_namelen, dbug.eip_fn_name, eip - dbug.eip_fn_addr);
   }
   return 0;
 }
