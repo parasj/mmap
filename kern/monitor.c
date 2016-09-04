@@ -64,27 +64,31 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
   cprintf("Stack backtrace:\n");
   int* ebp = (int*) read_ebp();
   int* nextebp = ebp;
+  int eip;
 
   while (nextebp != 0x0) {
-
+    // Print info about stack frame currently used
     ebp = nextebp;
     nextebp = (int*) *nextebp;
+    eip = *(ebp + 1);
 
-    cprintf("  ebp %x eip %x args", ebp, *(ebp + 1));
+    cprintf("  ebp %x eip %x args", ebp, eip);
 
     int count = 0;
     ebp += 1;
-    // +2 is so we don't run into the next stack frame
-    while (ebp + 2 != nextebp) {
+
+    // Print out our 5 'args'!
+    while (count < 5) {
       ebp += 1;
       count += 1;
       cprintf(" %08x", *ebp);
-      if (count >= 5 && nextebp == 0x0) {
-        break;
-      }
     }
-
     cprintf("\n");
+
+    // print info about the debug symbols
+    struct Eipdebuginfo dbug;
+    debuginfo_eip(eip, &dbug);
+    cprintf("         %s:%d: %.*s+%d\n", dbug.eip_file, dbug.eip_line, dbug.eip_fn_namelen, dbug.eip_fn_name, dbug.eip_fn_narg);
   }
   return 0;
 }
