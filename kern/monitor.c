@@ -13,6 +13,8 @@
 
 #define CMDBUF_SIZE 80 // enough for one VGA text line
 
+struct Trapframe {
+};
 
 struct Command {
   const char *name;
@@ -24,6 +26,7 @@ struct Command {
 static struct Command commands[] = {
   { "help",      "Display this list of commands",        mon_help       },
   { "info-kern", "Display information about the kernel", mon_infokern   },
+  { "backtrace", "Display a backtrace, listing stackframes", mon_backtrace},
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -59,7 +62,35 @@ mon_infokern(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-  // Your code here.
+  cprintf("Stack backtrace:\n");
+  int* ebp = (int*) read_ebp();
+  int* nextebp = ebp;
+  int eip;
+
+  while (nextebp != 0x0) {
+    // Print info about stack frame currently used
+    ebp = nextebp;
+    nextebp = (int*) *nextebp;
+    eip = *(ebp + 1);
+
+    cprintf("  ebp %x eip %x args", ebp, eip);
+
+    int count = 0;
+    ebp += 1;
+
+    // Print out our 5 'args'!
+    while (count < 5) {
+      ebp += 1;
+      count += 1;
+      cprintf(" %08x", *ebp);
+    }
+    cprintf("\n");
+
+    // print info about the debug symbols
+    struct Eipdebuginfo dbug;
+    debuginfo_eip(eip, &dbug);
+    cprintf("         %s:%d: %.*s+%d\n", dbug.eip_file, dbug.eip_line, dbug.eip_fn_namelen, dbug.eip_fn_name, eip - dbug.eip_fn_addr);
+  }
   return 0;
 }
 
