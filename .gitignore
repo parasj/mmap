@@ -1,4 +1,5 @@
 /obj
+/__pycache__/
 /jos.in
 /jos.log
 /jos.out
