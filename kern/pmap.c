@@ -376,8 +376,30 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-  // Fill this function in
-  return NULL;
+  uint32_t dir = PDX(va);
+  uint32_t table = PTX(va);
+
+  // I hope this is right.
+  pgdir[dir] = pgdir[dir] | PTE_P | PTE_U | PTE_W | PTE_G;
+  pte_t* pgtbl = (pte_t*) KADDR(PTE_ADDR(pgdir[dir]));
+  pte_t pgFrame = pgtbl[table];
+
+  if (! pgFrame & PTE_P) {
+    if (!create) {
+      return NULL;
+    }
+
+    // Create and place a pte in pgFrame
+    struct PageInfo* pgInfo = page_alloc(ALLOC_ZERO);
+    if (pgInfo == NULL) {
+      return NULL;
+    }
+    pgInfo->pp_ref++;
+    pgtbl[table] = PTE_ADDR(page2pa(pgInfo));
+    pgtbl[table] |= PTE_P;
+  }
+
+  return &pgtbl[table];
 }
 
 //

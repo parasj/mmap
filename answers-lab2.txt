@@ -1,0 +1,2 @@
+
+Q1: The variable x should have uintptr_t, as you are actively dereferencing it to get at it's data, meanining it refers to a virtual addr (without translating it into a virtual addr first).
