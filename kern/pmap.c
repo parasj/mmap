@@ -471,11 +471,16 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
   pte_t* pte = pgdir_walk(pgdir, va, 0);
   int tlb = false;
   if (pte != NULL) {
-    // We need to wipe the current pte
-    pp->pp_ref = 1; // Force deletion (maybe remove?)
-    // This will  handle decrementing our ref count (and freeing it)
-    page_remove(pgdir, va);
-    tlb = true;
+    if (pp == pa2page(PTE_ADDR(*pte))) {
+      // Special case, not really too much of a hack.
+      pp->pp_ref--;
+    } else {
+      // We need to wipe the current pte
+      pp->pp_ref = 1; // Force deletion (maybe remove?)
+      // This will  handle decrementing our ref count (and freeing it)
+      page_remove(pgdir, va);
+      tlb = true;
+    }
   }
 
   pgdir = &pgdir[PDX(va)];
@@ -492,6 +497,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 
 
   ((pde_t*)KADDR(PTE_ADDR(*pgdir)))[PTX(va)] = page2pa(pp) | PTE_P | perm;
+  pp->pp_ref++;
 
   if (tlb) {
     tlb_invalidate(pgdir, va);
@@ -519,7 +525,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
     return NULL;
   }
 
-  struct PageInfo* pginfo =  pa2page((physaddr_t) KADDR(PTE_ADDR(*pte)));
+  struct PageInfo* pginfo =  pa2page((physaddr_t) (PTE_ADDR(*pte)));
 
   if (pte_store != 0) {
     *pte_store = pte;
