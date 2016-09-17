@@ -477,12 +477,26 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
     page_remove(pgdir, va);
     tlb = true;
   }
-  // Let's make the new page regardless
-  pte = pgdir_walk(pgdir, va, true);
 
-  if (pte == NULL) {
-    return -E_NO_MEM;
+  pgdir = &pgdir[PDX(va)];
+  if (!(*pgdir & PTE_P)) {
+    // Add a page table
+    struct PageInfo* pgI = page_alloc(ALLOC_ZERO);
+    if (pgI == NULL) {
+      return -E_NO_MEM;
+    }
+    pgI->pp_ref++;
+    // We can be liberal here since more permissions will come in in the page table entry.
+    *pgdir = page2pa(pgI) | PTE_P | PTE_W | PTE_U;
   }
+
+
+  ((pde_t*)KADDR(PTE_ADDR(*pgdir)))[PTX(va)] = page2pa(pp) | PTE_P | perm;
+
+  if (tlb) {
+    tlb_invalidate(pgdir, va);
+  }
+
   return 0;
 }
 
