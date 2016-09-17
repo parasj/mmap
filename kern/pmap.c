@@ -554,14 +554,13 @@ page_remove(pde_t *pgdir, void *va)
 {
   pte_t* ptrstore;
   struct PageInfo* pgInfo = page_lookup(pgdir, va, &ptrstore);
-  pgInfo->pp_ref--;
+  page_decref(pgInfo);
 
-  if (pgInfo->pp_ref <= 0) {
-    page_free(pgInfo);
+  if (pgInfo->pp_ref == 0) {
     tlb_invalidate(pgdir, va);
   }
 
-  ptrstore = 0;
+  *ptrstore = 0;
 }
 
 //
