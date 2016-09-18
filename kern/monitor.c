@@ -10,6 +10,10 @@
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
+#include <kern/pmap.h>
+
+// Please guys
+#define printf cprintf
 
 #define CMDBUF_SIZE 80 // enough for one VGA text line
 
@@ -27,6 +31,7 @@ static struct Command commands[] = {
   { "help",      "Display this list of commands",        mon_help       },
   { "info-kern", "Display information about the kernel", mon_infokern   },
   { "backtrace", "Display a backtrace, listing stackframes", mon_backtrace},
+  { "shwmap", "Display the mappings pertaining to a virtual address (or a range).", shwmap},
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -58,6 +63,66 @@ mon_infokern(int argc, char **argv, struct Trapframe *tf)
   return 0;
 }
 
+// return 0 if valid hex, 1 if invalid
+int hexsanitize(char* str) {
+  if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) {
+    str += 2;
+  }
+
+  for (;*str; str++) {
+    char wd = *str;
+    if (!((wd <= 70 && wd >= 65) || (wd >= 48 && wd <=57) || (wd >= 97 && wd <= 122))) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+// Convert a hex string to integer. Str must have passed hexsanitize
+uint32_t hextoi(char* str) {
+  // Skip 0x
+  if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) {
+    str += 2;
+  }
+
+  uint32_t val = 0;
+  for (;*str; str++) {
+    char wd = *str;
+    uint32_t currentVal = 0;
+
+    if (wd >= 97 && wd <= 122) {
+      wd -= 32;
+    }
+
+    if (wd <= 70 && wd >= 65) {
+      currentVal = wd - 55;
+    } else {
+      currentVal = wd - 48;
+    }
+    val = val << 4;
+    val |= currentVal;
+  }
+  return val;
+}
+
+int shwmap(int argc, char **argv, struct Trapframe *tf) {
+
+  if (argc < 2) {
+    printf("Please enter a memory address to look for.\n");
+    return 1;
+  }
+
+  char* toPrint = argv[1];
+  if (hexsanitize(toPrint)) {
+    printf("You did not enter valid hex.\n");
+    return 1;
+  }
+
+
+  printf("%d\n", hextoi(toPrint));
+
+  return 0;
+}
 
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
