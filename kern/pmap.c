@@ -179,11 +179,8 @@ mem_init(void)
   //      (ie. perm = PTE_U | PTE_P)
   //    - pages itself -- kernel RW, user NONE
   // Your code goes here:
-  // cprintf("%x\n", UPAGES);
-  boot_map_region(kern_pgdir, UPAGES, PGSIZE * npages, PADDR(pages), PTE_U | PTE_P);
-  // page_insert(kern_pgdir, pa2page(PADDR(pages)), (void*) UPAGES, PTE_U | PTE_P);
-  // cprintf("%x\n", check_va2pa(kern_pgdir, UPAGES));
-  // cprintf("%x\n", PADDR(pages));
+  int numEntries = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
+  boot_map_region(kern_pgdir, UPAGES, sizeof(struct PageInfo) * numEntries, PADDR(pages), PTE_U | PTE_P);
 
   //////////////////////////////////////////////////////////////////////
   // Use the physical memory that 'bootstack' refers to as the kernel
@@ -196,7 +193,7 @@ mem_init(void)
   //       overwrite memory.  Known as a "guard page".
   //     Permissions: kernel RW, user NONE
   // Your code goes here:
-  boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, (physaddr_t) bootstack, PTE_P | PTE_W);
+  boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_P | PTE_W);
 
 
   //////////////////////////////////////////////////////////////////////
@@ -207,7 +204,7 @@ mem_init(void)
   // we just set up the mapping anyway.
   // Permissions: kernel RW, user NONE
   // Your code goes here:
-  // boot_map_region(kern_pgdir, KERNBASE, (0x100000000 - KERNBASE), (physaddr_t) 0, PTE_P | PTE_W);
+  boot_map_region(kern_pgdir, KERNBASE, npages * PGSIZE, (physaddr_t) 0, PTE_P | PTE_W);
 
   // Check that the initial page directory has been set up correctly.
   check_kern_pgdir();
@@ -432,35 +429,17 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
   size /= PGSIZE;
   // cprintf("%d %d\n", size, npages);
   while(size > 0) {
-    cprintf("%d\n", size);
-    // Get some random memory
-    pte_t* pte = pgdir_walk(pgdir, (void*) va, true);
-    assert(pte != NULL);
-
     // Change it to be what we want
-    struct PageInfo* pg = pa2page(PTE_ADDR(*pte));
-    *pte = PTE_ADDR(pa);
-    *pte |= PTE_P | perm;
-
-    // Our real ref (not needed)
-    // struct PageInfo* realPg = pa2page(PTE_ADDR(pa));
-    // realPg->pp_ref = pg->pp_ref;
-
-    // Clear our badly allocated memory.
-    pg->pp_ref = 0;
-    page_free(pg);
-
-
-    // // Get our pageInfo
-    // struct PageInfo* pg = pa2page(pa);
-    // assert(pg->pp_link == NULL);
-    // page_insert(pgdir, pg, (void*) va, perm);
+    struct PageInfo* pg = pa2page(pa);
+    if (page_insert(pgdir, pg, (void*) va, perm | PTE_P)) {
+      // Error
+      panic("Something went wrong in a map!");
+    }
 
     // Move to the next entry
     va += PGSIZE;
     pa += PGSIZE;
     size--;
-    cprintf("%d\n", size);
   }
 }
 
@@ -760,14 +739,10 @@ check_kern_pgdir(void)
 
   // check pages array
   n = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
-  // cprintf("%x\n", UPAGES);
 
   for (i = 0; i < n; i += PGSIZE) {
-    cprintf("%x\n", check_va2pa(kern_pgdir, UPAGES + i));
-    cprintf("%x\n", PADDR(pages) + i);
     assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
   }
-
 
   // check phys mem
   for (i = 0; i < npages * PGSIZE; i += PGSIZE)
