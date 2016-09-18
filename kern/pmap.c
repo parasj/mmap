@@ -204,7 +204,8 @@ mem_init(void)
   // we just set up the mapping anyway.
   // Permissions: kernel RW, user NONE
   // Your code goes here:
-  boot_map_region(kern_pgdir, KERNBASE, npages * PGSIZE, (physaddr_t) 0, PTE_P | PTE_W);
+  boot_map_region(kern_pgdir, KERNBASE, 0x100000000 - KERNBASE, (physaddr_t) 0, PTE_P | PTE_W);
+  // cprintf("%d\n", PDX(KERNBASE + (npages * 2) * PGSIZE));
 
   // Check that the initial page directory has been set up correctly.
   check_kern_pgdir();
@@ -318,6 +319,7 @@ page_alloc(int alloc_flags)
 
   // This page is no longer free!
   page_free_list = page_free_list->pp_link;
+  pg->pp_ref = 0; // Just in case.
   pg->pp_link = NULL;
   void* myptr = page2kva(pg);
 
@@ -340,6 +342,7 @@ page_free(struct PageInfo *pp)
     panic("You tried to free something that seemed to be used!");
   }
 
+  pp->pp_ref = 0;
   pp->pp_link = page_free_list;
   page_free_list = pp;
 }
@@ -427,16 +430,17 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
   size /= PGSIZE;
+  struct PageInfo* pg = pa2page(pa);
   // cprintf("%d %d\n", size, npages);
   while(size > 0) {
+
     // Change it to be what we want
-    struct PageInfo* pg = pa2page(pa);
     if (page_insert(pgdir, pg, (void*) va, perm | PTE_P)) {
       // Error
       panic("Something went wrong in a map!");
     }
-
     // Move to the next entry
+    pg++;
     va += PGSIZE;
     pa += PGSIZE;
     size--;
@@ -479,7 +483,8 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
       pp->pp_ref--;
     } else {
       // We need to wipe the current pte
-      pp->pp_ref = 1; // Force deletion (maybe remove?)
+      struct PageInfo* ppRemove = pa2page(PTE_ADDR(*pte));
+      ppRemove->pp_ref = 1; // Force deletion (maybe remove?)
       // This will  handle decrementing our ref count (and freeing it)
       page_remove(pgdir, va);
       tlb = true;
@@ -497,7 +502,6 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
     // We can be liberal here since more permissions will come in in the page table entry.
     *pgdir = page2pa(pgI) | PTE_P | PTE_W | PTE_U;
   }
-
 
   ((pde_t*)KADDR(PTE_ADDR(*pgdir)))[PTX(va)] = page2pa(pp) | PTE_P | perm;
   pp->pp_ref++;
@@ -763,6 +767,7 @@ check_kern_pgdir(void)
       break;
     default:
       if (i >= PDX(KERNBASE)) {
+        // cprintf("%x\n", i);
         assert(pgdir[i] & PTE_P);
         assert(pgdir[i] & PTE_W);
       } else
@@ -970,6 +975,7 @@ check_page_installed_pgdir(void)
   assert(*(uint32_t*)PGSIZE == 0x01010101U);
   page_insert(kern_pgdir, pp2, (void*)PGSIZE, PTE_W);
   assert(*(uint32_t*)PGSIZE == 0x02020202U);
+  // cprintf("%d\n", pp2->pp_ref);
   assert(pp2->pp_ref == 1);
   assert(pp1->pp_ref == 0);
   *(uint32_t*)PGSIZE = 0x03030303U;
