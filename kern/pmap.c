@@ -179,8 +179,11 @@ mem_init(void)
   //      (ie. perm = PTE_U | PTE_P)
   //    - pages itself -- kernel RW, user NONE
   // Your code goes here:
-  // pages[UPAGES] = PTE_U | PTE_P;
-  // pages[&pages] = PTE_P | PTW_W; ???
+  // cprintf("%x\n", UPAGES);
+  boot_map_region(kern_pgdir, UPAGES, PGSIZE * npages, PADDR(pages), PTE_U | PTE_P);
+  // page_insert(kern_pgdir, pa2page(PADDR(pages)), (void*) UPAGES, PTE_U | PTE_P);
+  // cprintf("%x\n", check_va2pa(kern_pgdir, UPAGES));
+  // cprintf("%x\n", PADDR(pages));
 
   //////////////////////////////////////////////////////////////////////
   // Use the physical memory that 'bootstack' refers to as the kernel
@@ -193,6 +196,8 @@ mem_init(void)
   //       overwrite memory.  Known as a "guard page".
   //     Permissions: kernel RW, user NONE
   // Your code goes here:
+  boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, (physaddr_t) bootstack, PTE_P | PTE_W);
+
 
   //////////////////////////////////////////////////////////////////////
   // Map all of physical memory at KERNBASE.
@@ -202,6 +207,7 @@ mem_init(void)
   // we just set up the mapping anyway.
   // Permissions: kernel RW, user NONE
   // Your code goes here:
+  // boot_map_region(kern_pgdir, KERNBASE, (0x100000000 - KERNBASE), (physaddr_t) 0, PTE_P | PTE_W);
 
   // Check that the initial page directory has been set up correctly.
   check_kern_pgdir();
@@ -318,6 +324,7 @@ page_alloc(int alloc_flags)
   pg->pp_link = NULL;
   void* myptr = page2kva(pg);
 
+  // cprintf("%x\n", myptr);
   if (alloc_flags & ALLOC_ZERO) {
     memset(myptr, '\0', PGSIZE);
   }
@@ -418,25 +425,42 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 // mapped pages.
 //
 // Hint: the TA solution uses pgdir_walk
+// page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
   size /= PGSIZE;
+  // cprintf("%d %d\n", size, npages);
   while(size > 0) {
+    cprintf("%d\n", size);
     // Get some random memory
     pte_t* pte = pgdir_walk(pgdir, (void*) va, true);
     assert(pte != NULL);
 
     // Change it to be what we want
     struct PageInfo* pg = pa2page(PTE_ADDR(*pte));
-    page_free(pg);
-    *pte = PTE_ADDR(page2pa(pa2page(pa)));
+    *pte = PTE_ADDR(pa);
     *pte |= PTE_P | perm;
 
+    // Our real ref (not needed)
+    // struct PageInfo* realPg = pa2page(PTE_ADDR(pa));
+    // realPg->pp_ref = pg->pp_ref;
+
+    // Clear our badly allocated memory.
+    pg->pp_ref = 0;
+    page_free(pg);
+
+
+    // // Get our pageInfo
+    // struct PageInfo* pg = pa2page(pa);
+    // assert(pg->pp_link == NULL);
+    // page_insert(pgdir, pg, (void*) va, perm);
+
     // Move to the next entry
-    va++;
-    pa++;
+    va += PGSIZE;
+    pa += PGSIZE;
     size--;
+    cprintf("%d\n", size);
   }
 }
 
@@ -736,8 +760,13 @@ check_kern_pgdir(void)
 
   // check pages array
   n = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
-  for (i = 0; i < n; i += PGSIZE)
+  // cprintf("%x\n", UPAGES);
+
+  for (i = 0; i < n; i += PGSIZE) {
+    cprintf("%x\n", check_va2pa(kern_pgdir, UPAGES + i));
+    cprintf("%x\n", PADDR(pages) + i);
     assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
+  }
 
 
   // check phys mem
