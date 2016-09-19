@@ -33,6 +33,8 @@ static struct Command commands[] = {
   { "backtrace", "Display a backtrace, listing stackframes", mon_backtrace},
   { "shwmap", "Display the mappings pertaining to a virtual address (or a range).", shwmap},
   { "memchmod", "A chmod for your memory. Voids your warranty. Usage: memchmod (+-){PTE_P, PTE_U, PTE_W, PTE_G} VADDR.", memchmod},
+  { "vadump", "Dumps contents of the virtual address range. Takes two arguments.", vadump},
+  { "padump", "Dumps contents of the physical address range. Takes two arguments.", padump},
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -231,6 +233,72 @@ int memchmod(int argc, char **argv, struct Trapframe *tf) {
     default:
       // Don't do anything if we're confused.
       break;
+    }
+  }
+
+  return 0;
+}
+
+int vadump(int argc, char** argv, struct Trapframe *tf) {
+  return addrDump(argc, argv, tf, true);
+}
+
+int padump(int argc, char** argv, struct Trapframe *tf) {
+  return addrDump(argc, argv, tf, false);
+}
+
+int addrDump(int argc, char** argv, struct Trapframe *tf, int virtual) {
+  // Dumps VA's as seen by the kernel
+
+  if (argc <= 2) {
+    printf("Not enough arguments provided\n");
+    return 1;
+  }
+  if (hexsanitize(argv[1]) || hexsanitize(argv[2])) {
+    printf("There was an error parsing arguments.\n");
+    return 1;
+  }
+
+  uintptr_t start = hextoi(argv[1]);
+  uintptr_t end = hextoi(argv[2]);
+
+  if (start > end) {
+    printf("Your start value should be less than your end value\n");
+    return 1;
+  }
+
+  // Memory is byte addressable. Round down to the nearest 32 bit int (4 bytes).
+  start -= (start % sizeof(uintptr_t));
+  end -= (end % sizeof(uintptr_t));
+
+  pde_t* ptptr;
+  if (virtual)
+    ptptr = pgdir_walk(kern_pgdir, (void*) start, false);
+  else
+    ptptr = NULL;
+  for (; start < end; start += sizeof(uintptr_t)) {
+    if (!(start % PGSIZE) && virtual) {
+      // We're in a new pgframe, update ptptr
+      ptptr = pgdir_walk(kern_pgdir, (void*) start, false);
+    }
+
+    // Since paging is enabled, we can just go for it.
+    if (ptptr == NULL && virtual) {
+      // No Mapping
+      printf("%x: NULL\n", start);
+    } else {
+      if (virtual) {
+        // Dump data
+        printf("%x: 0x%08x\n", start, *((uint32_t*)start));
+      } else {
+        // Convert to VA
+        if (PGNUM(start) >= npages) {
+          printf("%x: Kernel does not have access to this PA.\n");
+        } else {
+          // Dump data
+          printf("%x: 0x%08x\n", start, *((uint32_t*)KADDR(start)));
+        }
+      }
     }
   }
 
