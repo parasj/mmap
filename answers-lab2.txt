@@ -1034,3 +1034,32 @@ Q2: This is an org mode table. You can export it to markdown or whatever if you 
 4. 4GB, as the pointers in 32 bit can only point to 4GB of data. Layout restrictions reduce this even further (we can't use all 4gb for physical memory), but for PHYSICAL MEMORY (not usable memory), the limit is 4GB.
 5. For each 0x00400000  of memory, we will need a Page Table, and we will also need a page directory to manage all the page tables. Each page table is  2^20 32 bit integers. We will need one more of these data structures to act as the page directory as well. Each PTE can map 4096 bytes (and each Page table can fit in a Page frame). If we filled all 4gb of space, we would need 4096 page tables, and 4 page directories (each can service ~1000), which gives us 16.794MB of space used, which is surprisingly good! (This is a result of nesting our page table into layers, to save space).
 6. Since paging isn't set up yet, we can still access the physical addrs that low, allowing us to use that low eip. It's switched over when the mem_init method ends, at which point, paging is in place, and we can use a higher EIP!
+
+CHALLENGE:
+
+I chose the challenge that involved writing additional commands!
+
+ALL COMMANDS INPUT AND OUTPUT VALUES IN HEX. You should be able to input addrs as 0x{address} or {address}, but both are in hex.
+
+Mappings command:
+shwmap <ADDR>
+shwmap <ADDR START> <ADDR END>
+This will indicate when a mapping does not exist yet as well.
+When working, this will print out VA -> PA as well as any permissions bits that you need.
+
+Change permissions
+memchmod (+/-)PTE_{P,U,G,W} VADDR
+You can place as many PTE_* as you need
+
+Virtual address dump
+vadump <START> <END>
+this will auto-align you to the nearest integer byte
+
+Physical address dump
+padump <START> <END>
+this will auto-align you to the nearest integer byte
+this only works for physical addrs that the kernel has access to.
+
+All implementations are in mointor.c, and use functions that I defined in pmap.c
+
+Hopefully it all works are you expect =).
