@@ -17,8 +17,10 @@ int mon_infokern(int argc, char **argv, struct Trapframe *tf);
 int mon_infopg(int argc, char **argv, struct Trapframe *tf);
 int mon_backtrace(int argc, char **argv, struct Trapframe *tf);
 int shwmap(int argc, char **argv, struct Trapframe *tf);
+int memchmod(int argc, char **argv, struct Trapframe *tf);
 
 int hexsanitize(char*);
 uint32_t hextoi(char*);
+int streq(char*, char*);
 
 #endif  // !JOS_KERN_MONITOR_H

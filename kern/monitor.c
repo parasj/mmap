@@ -32,6 +32,7 @@ static struct Command commands[] = {
   { "info-kern", "Display information about the kernel", mon_infokern   },
   { "backtrace", "Display a backtrace, listing stackframes", mon_backtrace},
   { "shwmap", "Display the mappings pertaining to a virtual address (or a range).", shwmap},
+  { "memchmod", "A chmod for your memory. Voids your warranty. Usage: memchmod (+-){PTE_P, PTE_U, PTE_W, PTE_G} VADDR.", memchmod},
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -144,7 +145,93 @@ int shwmap(int argc, char **argv, struct Trapframe *tf) {
     printf("0x%08x: 0x%08x -> 0x%08x  PERMS:%s%s%s\n", val, val, padr,
            (*pt) & PTE_P ? " PTE_P" : "",
            (*pt) & PTE_W ? " PTE_W" : "",
-           (*pt) & PTE_U ? " PTE_U" : "");
+           (*pt) & PTE_U ? " PTE_U" : "",
+           (*pt) & PTE_G ? " PTE_G" : "");
+  }
+
+  return 0;
+}
+
+int streq(char* one, char* two) {
+  while (*one && *two) {
+    if (*one != *two) {
+      return false;
+    }
+    one++;
+    two++;
+  }
+  if (*one || *two) {
+    return false;
+  }
+  return true;
+}
+
+int memchmod(int argc, char **argv, struct Trapframe *tf) {
+  if (argc < 3) {
+    printf("You did not enter enough arguments\n");
+    return 1;
+  }
+
+  if (hexsanitize(argv[argc-1])) {
+    printf("You did not enter valid hex.\n");
+    return 1;
+  }
+
+  uint32_t vaddr = hextoi(argv[argc-1]);
+  pde_t* ptptr = pgdir_walk(kern_pgdir, (void*) vaddr, false);
+
+  if (ptptr == NULL) {
+    printf("This virtual address does not have a mapping. Create one before using memchmod.\n");
+    return 1;
+  }
+
+  // We've got to figure out if we have good memory before we do anything...
+  for (int i = 1; i < argc - 1; i++) {
+    if ((argv[i][0] != '+' && argv[i][0] != '-')
+        || !(streq(argv[i] + 1, "PTE_P")
+            || streq(argv[i] + 1, "PTE_W")
+            || streq(argv[i] + 1, "PTE_U")
+            || streq(argv[i] + 1, "PTE_G"))) {
+      printf("Malformed argument found.\n");
+      return 1;
+    }
+  }
+
+  for(int i = 1; i < argc - 1; i++) {
+    uint32_t perms = 0;
+    switch (argv[i][5]) {
+    case 'P':
+      if (argv[i][0] == '+') {
+        *ptptr |= PTE_P;
+      } else {
+        *ptptr &= ~PTE_P;
+      }
+      break;
+    case 'W':
+      if (argv[i][0] == '+') {
+        *ptptr |= PTE_W;
+      } else {
+        *ptptr &= ~PTE_W;
+      }
+      break;
+    case 'U':
+      if (argv[i][0] == '+') {
+        *ptptr |= PTE_U;
+      } else {
+        *ptptr &= ~PTE_U;
+      }
+      break;
+    case 'G':
+      if (argv[i][0] == '+') {
+        *ptptr |= PTE_G;
+      } else {
+        *ptptr &= ~PTE_G;
+      }
+      break;
+    default:
+      // Don't do anything if we're confused.
+      break;
+    }
   }
 
   return 0;

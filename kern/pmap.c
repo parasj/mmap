@@ -396,7 +396,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
   pte_t* pgtbl = (pte_t*) KADDR(PTE_ADDR(pgdir[dir]));
   pte_t pgFrame = pgtbl[table];
 
-  if (! pgFrame & PTE_P || PGNUM(PTE_ADDR(pgFrame)) >= npages || pa2page(PTE_ADDR(pgFrame))->pp_ref == 0) {
+  if ((!(pgFrame & PTE_P)) || PGNUM(PTE_ADDR(pgFrame)) >= npages || pa2page(PTE_ADDR(pgFrame))->pp_ref == 0) {
     if (!create) {
       return NULL;
     }
