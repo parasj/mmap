@@ -112,14 +112,40 @@ int shwmap(int argc, char **argv, struct Trapframe *tf) {
     return 1;
   }
 
-  char* toPrint = argv[1];
-  if (hexsanitize(toPrint)) {
+  if (hexsanitize(argv[1])) {
     printf("You did not enter valid hex.\n");
     return 1;
   }
 
+  char* toPrint = argv[1];
+  uint32_t val = hextoi(toPrint);
+  uint32_t limit = val;
 
-  printf("%d\n", hextoi(toPrint));
+  if (argc > 2) {
+    if (hexsanitize(argv[2])) {
+      printf("You did not enter valid hex.\n");
+      return 1;
+    }
+
+    if (hextoi(argv[1]) >= hextoi(argv[2])) {
+      printf("Please input your smaller number first.\n");
+    }
+    limit = hextoi(argv[2]);
+  }
+
+  for (; val <= limit; val += PGSIZE) {
+    pde_t* pt = pgdir_walk(kern_pgdir, (void*) val, false);
+    if (pt == NULL) {
+      printf("0x%08x: 0x%08x -> NULL\n", val);
+      continue;
+    }
+    physaddr_t padr = PTE_ADDR(*pt);
+
+    printf("0x%08x: 0x%08x -> 0x%08x  PERMS:%s%s%s\n", val, val, padr,
+           (*pt) & PTE_P ? " PTE_P" : "",
+           (*pt) & PTE_W ? " PTE_W" : "",
+           (*pt) & PTE_U ? " PTE_U" : "");
+  }
 
   return 0;
 }
