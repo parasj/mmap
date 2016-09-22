@@ -221,7 +221,7 @@ mem_init(void)
   // we just set up the mapping anyway.
   // Permissions: kernel RW, user NONE
   // Your code goes here:
-  boot_map_region(kern_pgdir, KERNBASE, 0x100000000 - KERNBASE, (physaddr_t) 0, PTE_P | PTE_W);
+  boot_map_region(kern_pgdir, KERNBASE, ROUNDDOWN(0x100000000 - KERNBASE, PGSIZE), (physaddr_t) 0, PTE_P | PTE_W);
   // cprintf("%d\n", PDX(KERNBASE + (npages * 2) * PGSIZE));
 
   // Check that the initial page directory has been set up correctly.
@@ -330,7 +330,7 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
   struct PageInfo* pg = page_free_list;
-  if (page_free_list == NULL) {
+  if (!page_free_list) {
     return NULL;
   }
 
@@ -420,7 +420,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 
     // Create and place a pte in pgFrame
     struct PageInfo* pgInfo = page_alloc(ALLOC_ZERO);
-    if (pgInfo == NULL) {
+    if (!pgInfo) {
       return NULL;
     }
     pgInfo->pp_ref++;
@@ -512,7 +512,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
   if (!(*pgdir & PTE_P)) {
     // Add a page table
     struct PageInfo* pgI = page_alloc(ALLOC_ZERO);
-    if (pgI == NULL) {
+    if (!pgI) {
       return -E_NO_MEM;
     }
     pgI->pp_ref++;
@@ -545,7 +545,7 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
   pte_t* pte = pgdir_walk(pgdir, va, false);
-  if (pte == NULL) {
+  if (!pte) {
     return NULL;
   }
 

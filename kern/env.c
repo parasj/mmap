@@ -116,6 +116,18 @@ env_init(void)
 {
   // Set up envs array
   // LAB 3: Your code here.
+  env_free_list = NULL;
+  for (int i = 0; i < NENV; i++) {
+    struct Env* cur = &envs[i];
+    cur->env_link = env_free_list;
+    env_free_list = cur;
+    cur->env_id = 0;
+    cur->env_parent_id = 0;
+    cur->env_type = 0;
+    cur->env_status = ENV_FREE;
+    cur->env_runs = 0;
+    cur->env_pgdir = NULL;
+  }
 
   // Per-CPU part of the initialization
   env_init_percpu();
@@ -180,6 +192,17 @@ env_setup_vm(struct Env *e)
   //    - The functions in kern/pmap.h are handy.
 
   // LAB 3: Your code here.
+  e->env_pgdir = (uint32_t*) KADDR(page2pa(p));
+  p->pp_ref++;
+
+  // Mappings woo
+  page_insert(e->env_pgdir, pa2page(PADDR(pages)), (uint32_t*)UPAGES, PTE_U);
+  page_insert(e->env_pgdir, pa2page(PADDR(envs)), (uint32_t*)UENVS, PTE_U);
+
+  // These are not readable by user, probably dosen't even need a map.
+  // This pointer hardcoded, maybe this should be changed
+  // page_insert(e->env_pgdir, pa2page(PADDR((uint32_t*) ULIM)), (uint32_t*)0xef800000, PTE_U);
+  // page_insert(e->env_pgdir, pa2page(PADDR((uint32_t*) MMIOLIM)), (uint32_t*)0xefc00000, PTE_U);
 
   // UVPT maps the env's own page table read-only.
   // Permissions: kernel R, user R
@@ -266,6 +289,8 @@ region_alloc(struct Env *e, void *va, size_t len)
   //   'va' and 'len' values that are not page-aligned.
   //   You should round va down, and round (va + len) up.
   //   (Watch out for corner-cases!)
+  va = ROUNDDOWN(va, PGSIZE);
+  len = va - ROUNDUP(va + len, PGSIZE);
 }
 
 //
@@ -457,4 +482,3 @@ env_run(struct Env *e)
 
   panic("env_run not yet implemented");
 }
-
