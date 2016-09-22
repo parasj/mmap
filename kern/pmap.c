@@ -161,6 +161,8 @@ mem_init(void)
   //////////////////////////////////////////////////////////////////////
   // Make 'envs' point to an array of size 'NENV' of 'struct Env'.
   // LAB 3: Your code here.
+  envs = boot_alloc(sizeof(struct Env) * NENV);
+  memset(pages, 0, npages * sizeof(struct PageInfo));
 
   //////////////////////////////////////////////////////////////////////
   // Now that we've allocated the initial kernel data structures, we set
@@ -184,8 +186,8 @@ mem_init(void)
   //      (ie. perm = PTE_U | PTE_P)
   //    - pages itself -- kernel RW, user NONE
   // Your code goes here:
-  int numEntries = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
-  boot_map_region(kern_pgdir, UPAGES, sizeof(struct PageInfo) * numEntries, PADDR(pages), PTE_U | PTE_P);
+  int offset1 = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
+  boot_map_region(kern_pgdir, UPAGES, sizeof(struct PageInfo) + offset1, PADDR(pages), PTE_U | PTE_P);
 
   //////////////////////////////////////////////////////////////////////
   // Map the 'envs' array read-only by the user at linear address UENVS
@@ -194,6 +196,8 @@ mem_init(void)
   //    - the new image at UENVS  -- kernel R, user R
   //    - envs itself -- kernel RW, user NONE
   // LAB 3: Your code here.
+  int offset2 = ROUNDUP(NENV * sizeof(struct Env), PGSIZE);
+  boot_map_region(kern_pgdir, UENVS, sizeof(struct Env) + offset2, PADDR(envs), PTE_U | PTE_P);
 
   //////////////////////////////////////////////////////////////////////
   // Use the physical memory that 'bootstack' refers to as the kernel
@@ -802,14 +806,14 @@ check_kern_pgdir(void)
   // check pages array
   n = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
 
+  for (i = 0; i < n; i += PGSIZE) {
+    assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
+  }
+
   // check envs array (new test for lab 3)
   n = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
   for (i = 0; i < n; i += PGSIZE)
     assert(check_va2pa(pgdir, UENVS + i) == PADDR(envs) + i);
-
-  for (i = 0; i < n; i += PGSIZE) {
-    assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
-  }
 
   // check phys mem
   for (i = 0; i < npages * PGSIZE; i += PGSIZE)
