@@ -291,6 +291,13 @@ region_alloc(struct Env *e, void *va, size_t len)
   //   (Watch out for corner-cases!)
   va = ROUNDDOWN(va, PGSIZE);
   len = va - ROUNDUP(va + len, PGSIZE);
+
+  for (void* i = va; i , va + len; i += PGSIZE) {
+	  int ret = page_insert(e->env_pgdir, page_alloc(0), va, PTE_P | PTE_U | PTE_W);
+    if (ret == -E_NO_MEM) {
+      panic("Ran out of memory!");
+    }
+  }
 }
 
 //
@@ -347,6 +354,29 @@ load_icode(struct Env *e, uint8_t *binary)
   //  What?  (See env_run() and env_pop_tf() below.)
 
   // LAB 3: Your code here.
+  struct Proghdr *ph, *eph;
+  struct Elf* elfhdr;
+  elfhdr = (struct Elf *)(binary);
+  ph = (struct Proghdr *)((uint8_t *)elfhdr + elfhdr->e_phoff);
+  eph = ph + ((struct Elf*)binary)->e_phnum;
+
+  region_alloc(e, (void*) ph->p_va, ph->p_memsz);
+
+  for (; ph < eph; ph++) {
+    // p_pa is the load address of this segment (as well
+    // as the physical address)
+    uint32_t svcr3 = rcr3();
+    lcr3((uint32_t) e->env_pgdir);
+    if (ph->p_type == ELF_PROG_LOAD) {
+      uint8_t* cpyTo = (uint8_t*) ph->p_va;
+      uint8_t* cpyFrom = (uint8_t*)((uint32_t) binary + (uint32_t) ph->p_offset);
+      for(int i = 0; i < ph->p_memsz; i += sizeof(uint8_t)) {
+        *(cpyTo + i) = *(cpyFrom + i);
+      }
+    }
+    // Restore kernel cr3
+    lcr3(svcr3);
+  }
 
   // Now map one page for the program's initial stack
   // at virtual address USTACKTOP - PGSIZE.
