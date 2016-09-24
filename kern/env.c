@@ -378,6 +378,8 @@ load_icode(struct Env *e, uint8_t *binary)
     lcr3(svcr3);
   }
 
+  e->env_tf.tf_eip = elfhdr->e_entry;
+
   // Now map one page for the program's initial stack
   // at virtual address USTACKTOP - PGSIZE.
 
