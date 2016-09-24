@@ -384,6 +384,7 @@ load_icode(struct Env *e, uint8_t *binary)
   // at virtual address USTACKTOP - PGSIZE.
 
   // LAB 3: Your code here.
+  page_insert(e->env_pgdir, page_alloc(0), (void*) (USTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W);
 }
 
 //
@@ -397,6 +398,11 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
   // LAB 3: Your code here.
+  struct Env* myEnv;
+  env_alloc(&myEnv, 0);
+  load_icode(myEnv, binary);
+  myEnv->env_type = ENV_RUNNABLE;
+  myEnv->env_parent_id = 0;
 }
 
 //
