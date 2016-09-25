@@ -292,7 +292,7 @@ region_alloc(struct Env *e, void *va, size_t len)
   va = ROUNDDOWN(va, PGSIZE);
   len = va - ROUNDUP(va + len, PGSIZE);
 
-  for (void* i = va; i , va + len; i += PGSIZE) {
+  for (void* i = va; i < va + len; i += PGSIZE) {
 	  int ret = page_insert(e->env_pgdir, page_alloc(0), va, PTE_P | PTE_U | PTE_W);
     if (ret == -E_NO_MEM) {
       panic("Ran out of memory!");
@@ -511,12 +511,22 @@ env_run(struct Env *e)
   //	   registers and drop into user mode in the
   //	   environment.
 
+  if (e->env_status == ENV_NOT_RUNNABLE || e->env_status == ENV_DYING) {
+    panic("Tried to start an env that was not possible to start.");
+  }
+  e->env_status = ENV_RUNNABLE;
+  curenv = e;
+  e->env_status = ENV_RUNNING;
+  e->env_runs++;
+  lcr3(e->env_tf.tf_eip);
+
   // Hint: This function loads the new environment's state from
   //	e->env_tf.  Go back through the code you wrote above
   //	and make sure you have set the relevant parts of
   //	e->env_tf to sensible values.
+  env_pop_tf(&e->env_tf);
 
   // LAB 3: Your code here.
 
-  panic("env_run not yet implemented");
+  // panic("env_run not yet implemented");
 }
