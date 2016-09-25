@@ -117,7 +117,7 @@ env_init(void)
   // Set up envs array
   // LAB 3: Your code here.
   env_free_list = NULL;
-  for (int i = 0; i < NENV; i++) {
+  for (int i = NENV - 1; i >= 0; i--) {
     struct Env* cur = &envs[i];
     cur->env_link = env_free_list;
     env_free_list = cur;
@@ -200,18 +200,18 @@ env_setup_vm(struct Env *e)
   page_insert(e->env_pgdir, pa2page(PADDR(envs)), (uint32_t*)UENVS, PTE_U);
 
   page_insert(e->env_pgdir, pa2page(PADDR(bootstack)), (uint32_t*)KSTACKTOP-KSTKSIZE, PTE_W);
+  // page_insert(e->env_pgdir, pa2page(PADDR((uint32_t*) MMIOLIM)), (uint32_t*)0xefc00000, PTE_U);
 
   for(uintptr_t i = KERNBASE; i < ROUNDDOWN(0x100000000 - 1, PGSIZE); i += PGSIZE) {
-    // cprintf("0x%08x\n",i - KERNBASE);
     if ((PGNUM(i - KERNBASE) >= npages)) {
       // Ran out of pages
       break;
     }
     page_insert(e->env_pgdir, pa2page(i - KERNBASE), (void*)(i), PTE_W);
   }
-  // page_insert(e->env_pgdir, pa2page(PADDR((uint32_t*) MMIOLIM)), (uint32_t*)0xefc00000, PTE_U);
 
-
+  // cprintf("0x%08x\n", PDX(0xf011cfc4));
+  // 0xf011cfc4
   // UVPT maps the env's own page table read-only.
   // Permissions: kernel R, user R
   e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;
@@ -410,7 +410,7 @@ env_create(uint8_t *binary, enum EnvType type)
   struct Env* myEnv;
   env_alloc(&myEnv, 0);
   load_icode(myEnv, binary);
-  myEnv->env_type = ENV_RUNNABLE;
+  // myEnv->env_type = ENV_RUNNABLE;
   myEnv->env_parent_id = 0;
 }
 
@@ -527,7 +527,7 @@ env_run(struct Env *e)
   curenv = e;
   e->env_status = ENV_RUNNING;
   e->env_runs++;
-  lcr3((uint32_t)e->env_pgdir);
+  lcr3(PADDR(e->env_pgdir));
 
   // Hint: This function loads the new environment's state from
   //	e->env_tf.  Go back through the code you wrote above
