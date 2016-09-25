@@ -1062,3 +1062,17 @@ check_page_installed_pgdir(void)
 
   cprintf("check_page_installed_pgdir() succeeded!\n");
 }
+
+physaddr_t
+va2pa(pde_t *pgdir, uintptr_t va)
+{
+  pte_t *p;
+
+  pgdir = &pgdir[PDX(va)];
+  if (!(*pgdir & PTE_P))
+    return ~0;
+  p = (pte_t*)KADDR(PTE_ADDR(*pgdir));
+  if (!(p[PTX(va)] & PTE_P))
+    return ~0;
+  return PTE_ADDR(p[PTX(va)]);
+}

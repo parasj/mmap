@@ -199,10 +199,18 @@ env_setup_vm(struct Env *e)
   page_insert(e->env_pgdir, pa2page(PADDR(pages)), (uint32_t*)UPAGES, PTE_U);
   page_insert(e->env_pgdir, pa2page(PADDR(envs)), (uint32_t*)UENVS, PTE_U);
 
-  // These are not readable by user, probably dosen't even need a map.
-  // This pointer hardcoded, maybe this should be changed
-  // page_insert(e->env_pgdir, pa2page(PADDR((uint32_t*) ULIM)), (uint32_t*)0xef800000, PTE_U);
+  page_insert(e->env_pgdir, pa2page(PADDR(bootstack)), (uint32_t*)KSTACKTOP-KSTKSIZE, PTE_W);
+
+  for(uintptr_t i = KERNBASE; i < ROUNDDOWN(0x100000000 - 1, PGSIZE); i += PGSIZE) {
+    // cprintf("0x%08x\n",i - KERNBASE);
+    if ((PGNUM(i - KERNBASE) >= npages)) {
+      // Ran out of pages
+      break;
+    }
+    page_insert(e->env_pgdir, pa2page(i - KERNBASE), (void*)(i), PTE_W);
+  }
   // page_insert(e->env_pgdir, pa2page(PADDR((uint32_t*) MMIOLIM)), (uint32_t*)0xefc00000, PTE_U);
+
 
   // UVPT maps the env's own page table read-only.
   // Permissions: kernel R, user R
@@ -290,10 +298,10 @@ region_alloc(struct Env *e, void *va, size_t len)
   //   You should round va down, and round (va + len) up.
   //   (Watch out for corner-cases!)
   va = ROUNDDOWN(va, PGSIZE);
-  len = va - ROUNDUP(va + len, PGSIZE);
+  len = ROUNDUP(va + len, PGSIZE) - va;
 
   for (void* i = va; i < va + len; i += PGSIZE) {
-	  int ret = page_insert(e->env_pgdir, page_alloc(0), va, PTE_P | PTE_U | PTE_W);
+	  int ret = page_insert(e->env_pgdir, page_alloc(0), i, PTE_P | PTE_U | PTE_W);
     if (ret == -E_NO_MEM) {
       panic("Ran out of memory!");
     }
@@ -354,28 +362,29 @@ load_icode(struct Env *e, uint8_t *binary)
   //  What?  (See env_run() and env_pop_tf() below.)
 
   // LAB 3: Your code here.
+
   struct Proghdr *ph, *eph;
   struct Elf* elfhdr;
   elfhdr = (struct Elf *)(binary);
+  assert(elfhdr->e_magic == ELF_MAGIC);
   ph = (struct Proghdr *)((uint8_t *)elfhdr + elfhdr->e_phoff);
-  eph = ph + ((struct Elf*)binary)->e_phnum;
-
-  region_alloc(e, (void*) ph->p_va, ph->p_memsz);
+  eph = ph + elfhdr->e_phnum;
 
   for (; ph < eph; ph++) {
     // p_pa is the load address of this segment (as well
     // as the physical address)
-    uint32_t svcr3 = rcr3();
-    lcr3((uint32_t) e->env_pgdir);
     if (ph->p_type == ELF_PROG_LOAD) {
+      region_alloc(e, (void*) ph->p_va, ph->p_memsz);
       uint8_t* cpyTo = (uint8_t*) ph->p_va;
       uint8_t* cpyFrom = (uint8_t*)((uint32_t) binary + (uint32_t) ph->p_offset);
       for(int i = 0; i < ph->p_memsz; i += sizeof(uint8_t)) {
-        *(cpyTo + i) = *(cpyFrom + i);
+        uint8_t tmp = *(cpyFrom + i);
+        // Changing cr3 is a pain to get right so...
+
+        // cprintf("%x\n", cpyTo);
+        *((uint32_t*)KADDR(va2pa(e->env_pgdir, (uint32_t)(cpyTo + i)))) = tmp;
       }
     }
-    // Restore kernel cr3
-    lcr3(svcr3);
   }
 
   e->env_tf.tf_eip = elfhdr->e_entry;
@@ -518,7 +527,7 @@ env_run(struct Env *e)
   curenv = e;
   e->env_status = ENV_RUNNING;
   e->env_runs++;
-  lcr3(e->env_tf.tf_eip);
+  lcr3((uint32_t)e->env_pgdir);
 
   // Hint: This function loads the new environment's state from
   //	e->env_tf.  Go back through the code you wrote above
