@@ -362,6 +362,8 @@ load_icode(struct Env *e, uint8_t *binary)
   //  What?  (See env_run() and env_pop_tf() below.)
 
   // LAB 3: Your code here.
+  uint32_t oldCr3 = rcr3();
+  lcr3(PADDR(e->env_pgdir));
 
   struct Proghdr *ph, *eph;
   struct Elf* elfhdr;
@@ -377,23 +379,27 @@ load_icode(struct Env *e, uint8_t *binary)
       region_alloc(e, (void*) ph->p_va, ph->p_memsz);
       uint8_t* cpyTo = (uint8_t*) ph->p_va;
       uint8_t* cpyFrom = (uint8_t*)((uint32_t) binary + (uint32_t) ph->p_offset);
-      for(int i = 0; i < ph->p_memsz; i += sizeof(uint8_t)) {
+      for(uint32_t i = 0; i < ph->p_memsz; i += sizeof(uint8_t)) {
         uint8_t tmp = *(cpyFrom + i);
-        // Changing cr3 is a pain to get right so...
 
-        // cprintf("%x\n", cpyTo);
-        *((uint32_t*)KADDR(va2pa(e->env_pgdir, (uint32_t)(cpyTo + i)))) = tmp;
+        // cprintf("%x\n", cpyTo + i);
+        *(cpyTo + i) = tmp;
+
       }
     }
   }
 
   e->env_tf.tf_eip = elfhdr->e_entry;
+  // e->env_tf.tf_regs.reg_esp = USTACKTOP - PGSIZE;
+  e->env_tf.tf_regs.reg_ebp = USTACKTOP - PGSIZE;
 
   // Now map one page for the program's initial stack
   // at virtual address USTACKTOP - PGSIZE.
 
   // LAB 3: Your code here.
   page_insert(e->env_pgdir, page_alloc(0), (void*) (USTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W);
+
+  lcr3(oldCr3);
 }
 
 //
