@@ -80,12 +80,12 @@ _alltraps:
   # Building le trap frame
   pushl %ds
   pushl %es
-  pushl %fs
-  pushl %gs
   pushal
 
-  movw GD_KD, %ds
-  movw GD_KD, %es
+  // Move GD_KD into ds and es
+  movl $GD_KD, %eax
+	movw %ax, %ds
+	movw %ax, %es
 
   pushl %esp
   call trap
