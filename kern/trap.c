@@ -58,14 +58,51 @@ static const char *trapname(int trapno)
   return "(unknown trap)";
 }
 
+void trap0();
+void trap1();
+void trap2();
+void trap3();
+void trap4();
+void trap5();
+void trap6();
+void trap7();
+void trap8();
+void trap10();
+void trap11();
+void trap12();
+void trap13();
+void trap14();
+void trap16();
+void trap17();
+void trap18();
+void trap19();
+void trap48();
+void trap500();
 
 void
 trap_init(void)
 {
   extern struct Segdesc gdt[];
 
-
   // LAB 3: Your code here.
+  SETGATE(idt[0], 1, GD_KD, (trap0), 0);
+  SETGATE(idt[1], 1, GD_KD, (trap1), 0);
+  SETGATE(idt[2], 1, GD_KD, (trap2), 0);
+  SETGATE(idt[3], 1, GD_KD, (trap3), 0);
+  SETGATE(idt[4], 1, GD_KD, (trap4), 0);
+  SETGATE(idt[5], 1, GD_KD, (trap5), 0);
+  SETGATE(idt[6], 1, GD_KD, (trap6), 0);
+  SETGATE(idt[7], 1, GD_KD, (trap7), 0);
+  SETGATE(idt[8], 0, GD_KD, (trap8), 0);
+  SETGATE(idt[10], 0, GD_KD, (trap10), 0);
+  SETGATE(idt[11], 0, GD_KD, (trap11), 0);
+  SETGATE(idt[12], 0, GD_KD, (trap12), 0);
+  SETGATE(idt[13], 0, GD_KD, (trap13), 0);
+  SETGATE(idt[14], 0, GD_KD, (trap14), 0);
+  SETGATE(idt[16], 0, GD_KD, (trap16), 0);
+  SETGATE(idt[17], 1, GD_KD, (trap17), 0);
+  SETGATE(idt[T_SYSCALL], 1, GD_KD, (trap48), 0);
+  SETGATE(idt[T_DEFAULT], 1, GD_KD, (trap500), 0);
 
   // Per-CPU setup
   trap_init_percpu();
@@ -216,4 +253,3 @@ page_fault_handler(struct Trapframe *tf)
   print_trapframe(tf);
   env_destroy(curenv);
 }
-
