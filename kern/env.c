@@ -196,19 +196,9 @@ env_setup_vm(struct Env *e)
   p->pp_ref++;
 
   // Mappings woo
-  page_insert(e->env_pgdir, pa2page(PADDR(pages)), (uint32_t*)UPAGES, PTE_U);
-  page_insert(e->env_pgdir, pa2page(PADDR(envs)), (uint32_t*)UENVS, PTE_U);
-
-  page_insert(e->env_pgdir, pa2page(PADDR(bootstack)), (uint32_t*)KSTACKTOP-KSTKSIZE, PTE_W);
-  // page_insert(e->env_pgdir, pa2page(PADDR((uint32_t*) MMIOLIM)), (uint32_t*)0xefc00000, PTE_U);
-
-  for(uintptr_t i = KERNBASE; i < ROUNDDOWN(0x100000000 - 1, PGSIZE); i += PGSIZE) {
-    if ((PGNUM(i - KERNBASE) >= npages)) {
-      // Ran out of pages
-      break;
-    }
-    page_insert(e->env_pgdir, pa2page(i - KERNBASE), (void*)(i), PTE_W);
-  }
+  // Steal everything we need from the kernel pgdir!
+  for (i = PDX(UTOP); i < NPDENTRIES; i++)
+	  e->env_pgdir[i] = kern_pgdir[i];
 
   // cprintf("0x%08x\n", PDX(0xf011cfc4));
   // 0xf011cfc4
