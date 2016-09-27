@@ -25,7 +25,7 @@
         .globl name;            /* define global symbol for 'name' */   \
         .type name, @function;  /* symbol type is function */           \
         .align 2;               /* align function definition */         \
-        name:                   /* function starts here */              \
+ name:                   /* function starts here */              \
         pushl $(num);                                                   \
         jmp _alltraps;                                                  \
         .data;								                                          \

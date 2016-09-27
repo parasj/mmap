@@ -58,27 +58,6 @@ static const char *trapname(int trapno)
   return "(unknown trap)";
 }
 
-void trap0();
-void trap1();
-void trap2();
-void trap3();
-void trap4();
-void trap5();
-void trap6();
-void trap7();
-void trap8();
-void trap10();
-void trap11();
-void trap12();
-void trap13();
-void trap14();
-void trap16();
-void trap17();
-void trap18();
-void trap19();
-void trap48();
-void trap500();
-
 extern uint32_t trapentry[];
 
 void
@@ -87,13 +66,16 @@ trap_init(void)
   extern struct Segdesc gdt[];
 
   // LAB 3: Your code here.
-  for (int i = 0; i <= 20; i++) {
+  // Assume we're looping through everythign here:
+  int i = 0;
+  for (;i <= 20; i++) {
     // We'll disable multiple interrupts until we have reason to do so (NMI might need it.)
     SETGATE(idt[i], 0, GD_KT, (trapentry[i]), 0);
   }
 
-  SETGATE(idt[T_SYSCALL], 0, GD_KT, (trap48), 0);
-  SETGATE(idt[T_DEFAULT], 0, GD_KT, (trap500), 0);
+  // Assume trapentries are directly after the ones above.
+  SETGATE(idt[T_SYSCALL], 0, GD_KT, (trapentry[++i]), 0);
+  SETGATE(idt[T_DEFAULT], 0, GD_KT, (trapentry[++i]), 0);
 
   // Per-CPU setup
   trap_init_percpu();

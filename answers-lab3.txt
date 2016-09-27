@@ -1,0 +1,11 @@
+
+Answers for lab3
+
+1. The reason that we have more than one handler (even when we end up going to a single trap function right now) is that in the future, we can easily differetiate behaviors that different exception/interrupts. For example, we would want to execute special instructions in case of a page fault: load that page into memory. Without this structure, this would be very hard.
+2. Nope, we didn't need to! The reason we got a General Protection Fault is that if we had gotten a PF, then we may have loaded that page into memory, which would be bad (and the program could modify the stack/kernel memory if it was designed well)! Userspace programs aren't allowed to generate a PF, which happened because we set our permission bits correctly.
+
+CHALLENGE:
+
+I did challenge problem 1 for Lab 3A!
+
+The major change that I made was in trapentry.S, where I added a data segment after every text segement (which contains the handler) to build a table for trap.c to index into. All I needed to do was declare a variable in every call to the macro, as well as declare a global variable (which I named trapentry) above all the macro calls, which lets me create the extern trapentry[] in trap.c, which I can loop through to add the trap functions to the IDT. We can't get much better than this, as the IDT must be loaded into memory at runtime, so we can't use macros to do all the work!
