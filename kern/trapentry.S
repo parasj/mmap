@@ -21,32 +21,40 @@
  * where NAME is the argument passed to TRAPHANDLER.
  */
 #define TRAPHANDLER(name, num)                                          \
+        .text;                                                           \
         .globl name;            /* define global symbol for 'name' */   \
         .type name, @function;  /* symbol type is function */           \
         .align 2;               /* align function definition */         \
         name:                   /* function starts here */              \
         pushl $(num);                                                   \
-        jmp _alltraps
+        jmp _alltraps;                                                  \
+        .data;								                                          \
+        .int name
 
 /* Use TRAPHANDLER_NOEC for traps where the CPU doesn't push an error code.
  * It pushes a 0 in place of the error code, so the trap frame has the same
  * format in either case.
  */
 #define TRAPHANDLER_NOEC(name, num)                                     \
+        .text;                                                           \
         .globl name;                                                    \
         .type name, @function;                                          \
         .align 2;                                                       \
         name:                                                           \
         pushl $0;                                                       \
         pushl $(num);                                                   \
-        jmp _alltraps
+        jmp _alltraps;                                                  \
+        .data;								                                          \
+        .int name
+
+.data
+  .globl trapentry
+trapentry:
 
 .text
-
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
-
   TRAPHANDLER_NOEC(trap0, T_DIVIDE)
   TRAPHANDLER_NOEC(trap1, T_DEBUG)
   TRAPHANDLER_NOEC(trap2, T_NMI)
@@ -56,18 +64,18 @@
   TRAPHANDLER_NOEC(trap6, T_ILLOP)
   TRAPHANDLER_NOEC(trap7, T_DEVICE)
   TRAPHANDLER(trap8, T_DBLFLT)
-
+  TRAPHANDLER(trap9, 9)
   TRAPHANDLER(trap10, T_TSS)
   TRAPHANDLER(trap11, T_SEGNP)
   TRAPHANDLER(trap12, T_STACK)
   TRAPHANDLER(trap13, T_GPFLT)
   TRAPHANDLER(trap14, T_PGFLT)
-
+  TRAPHANDLER_NOEC(trap15, 15)
   TRAPHANDLER_NOEC(trap16, T_FPERR)
   TRAPHANDLER(trap17, T_ALIGN)
   TRAPHANDLER_NOEC(trap18, T_MCHK)
   TRAPHANDLER_NOEC(trap19, T_SIMDERR)
-
+  TRAPHANDLER_NOEC(trap20, 20) // Virtualization?
   TRAPHANDLER_NOEC(trap48, T_SYSCALL)
   TRAPHANDLER_NOEC(trap500, T_DEFAULT)
 

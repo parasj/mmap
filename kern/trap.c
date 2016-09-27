@@ -79,30 +79,19 @@ void trap19();
 void trap48();
 void trap500();
 
+extern uint32_t trapentry[];
+
 void
 trap_init(void)
 {
   extern struct Segdesc gdt[];
 
   // LAB 3: Your code here.
-  SETGATE(idt[0], 0, GD_KT, (trap0), 0);
-  SETGATE(idt[1], 0, GD_KT, (trap1), 0);
-  SETGATE(idt[2], 0, GD_KT, (trap2), 0);
-  SETGATE(idt[3], 0, GD_KT, (trap3), 0);
-  SETGATE(idt[4], 0, GD_KT, (trap4), 0);
-  SETGATE(idt[5], 0, GD_KT, (trap5), 0);
-  SETGATE(idt[6], 0, GD_KT, (trap6), 0);
-  SETGATE(idt[7], 0, GD_KT, (trap7), 0);
-  SETGATE(idt[8], 0, GD_KT, (trap8), 0);
-  SETGATE(idt[10], 0, GD_KT, (trap10), 0);
-  SETGATE(idt[11], 0, GD_KT, (trap11), 0);
-  SETGATE(idt[12], 0, GD_KT, (trap12), 0);
-  SETGATE(idt[13], 0, GD_KT, (trap13), 0);
-  SETGATE(idt[14], 0, GD_KT, (trap14), 0);
-  SETGATE(idt[16], 0, GD_KT, (trap16), 0);
-  SETGATE(idt[17], 0, GD_KT, (trap17), 0);
-  SETGATE(idt[18], 0, GD_KT, (trap18), 0);
-  SETGATE(idt[19], 0, GD_KT, (trap18), 0);
+  for (int i = 0; i <= 20; i++) {
+    // We'll disable multiple interrupts until we have reason to do so (NMI might need it.)
+    SETGATE(idt[i], 0, GD_KT, (trapentry[i]), 0);
+  }
+
   SETGATE(idt[T_SYSCALL], 0, GD_KT, (trap48), 0);
   SETGATE(idt[T_DEFAULT], 0, GD_KT, (trap500), 0);
 
