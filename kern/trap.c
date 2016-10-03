@@ -74,7 +74,7 @@ trap_init(void)
   }
 
   // Assume trapentries are directly after the ones above.
-  SETGATE(idt[T_SYSCALL], 0, GD_KT, (trapentry[++i]), 0);
+  SETGATE(idt[T_SYSCALL], 0, GD_KT, (trapentry[++i]), 3);
   SETGATE(idt[T_DEFAULT], 0, GD_KT, (trapentry[++i]), 0);
 
   // Per-CPU setup
