@@ -73,6 +73,8 @@ trap_init(void)
     SETGATE(idt[i], 0, GD_KT, (trapentry[i]), 0);
   }
 
+  // Breakpoints should be handled in user mode.
+  SETGATE(idt[T_BRKPT], 0, GD_KT, (trapentry[T_BRKPT]), 3);
   // Assume trapentries are directly after the ones above.
   SETGATE(idt[T_SYSCALL], 0, GD_KT, (trapentry[++i]), 3);
   SETGATE(idt[T_DEFAULT], 0, GD_KT, (trapentry[++i]), 0);
