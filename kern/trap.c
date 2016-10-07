@@ -156,6 +156,8 @@ trap_dispatch(struct Trapframe *tf)
   // LAB 3: Your code here.
   if (tf->tf_trapno == T_PGFLT) {
     page_fault_handler(tf);
+  } else if (tf->tf_trapno == T_BRKPT) {
+    monitor(tf);
   }
 
   // Unexpected trap: The user process or the kernel has a bug.
@@ -220,7 +222,7 @@ page_fault_handler(struct Trapframe *tf)
 
   // LAB 3: Your code here.
   if ((tf->tf_cs & 3) == 0) {
-    // Kernel trap shouldn't be a thing..
+    // Kernel pagefaults mean errors elsewhere! I cri.
     panic("The kenrnel produced a page fault!");
   }
 
