@@ -369,12 +369,17 @@ load_icode(struct Env *e, uint8_t *binary)
       region_alloc(e, (void*) ph->p_va, ph->p_memsz);
       uint8_t* cpyTo = (uint8_t*) ph->p_va;
       uint8_t* cpyFrom = (uint8_t*)((uint32_t) binary + (uint32_t) ph->p_offset);
+
       for(uint32_t i = 0; i < ph->p_memsz; i += sizeof(uint8_t)) {
-        uint8_t tmp = *(cpyFrom + i);
-
-        // cprintf("%x\n", cpyTo + i);
-        *(cpyTo + i) = tmp;
-
+	      if (i < ph->p_filesz) {
+          // Copy real data
+          uint8_t tmp = *(cpyFrom + i);
+          // cprintf("%x\n", cpyTo + i);
+          *(cpyTo + i) = tmp;
+        } else {
+          // clear data
+          *(cpyTo + i) = 0;
+        }
       }
     }
   }
