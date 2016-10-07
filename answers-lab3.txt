@@ -3,6 +3,8 @@ Answers for lab3
 
 1. The reason that we have more than one handler (even when we end up going to a single trap function right now) is that in the future, we can easily differetiate behaviors that different exception/interrupts. For example, we would want to execute special instructions in case of a page fault: load that page into memory. Without this structure, this would be very hard.
 2. Nope, we didn't need to! The reason we got a General Protection Fault is that if we had gotten a PF, then we may have loaded that page into memory, which would be bad (and the program could modify the stack/kernel memory if it was designed well)! Userspace programs aren't allowed to generate a PF, which happened because we set our permission bits correctly.
+3. We'll get a general protection fault if we didn't give the user permission to generate breakpoint faults in the IDT. Once we set the user bit to 3 in the IDT, the breakpoint exception will come through without making a general protection fault!
+4. This mechanism is to prevent the kernel from acting on a unallowed page fault. If a user program tires to make a fault that it has no permission to use, it will create a general protection fault, elliminating the possiblity of having the kernel mess up handling of the fault (and give the user kernel information).
 
 CHALLENGE:
 

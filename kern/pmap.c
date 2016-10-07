@@ -626,8 +626,8 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 
   // We want to check the first address passed in, then we want to be page aligned.
   uintptr_t start = (uintptr_t) va;
-  // Make sure we check the entire page.
-  uintptr_t end = (uintptr_t) ROUNDUP(va + len, PGSIZE);
+  uintptr_t end = (uintptr_t) va + len;
+  int ourPerm = PTE_P | perm;
 
   // We want page aligned after the first check.
   for (;start < end; start = ROUNDUP(start + PGSIZE, PGSIZE)) {
@@ -638,7 +638,7 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
       user_mem_check_addr = start;
       return -E_FAULT;
       // Check if we have permissions and if the page exists.
-    } else if (!curPte || (*curPte & (perm | PTE_P)) != (perm | PTE_P)) {
+    } else if (!curPte || ((*curPte & (ourPerm)) ^ ourPerm)) {
       user_mem_check_addr = start;
       return -E_FAULT;
     }
