@@ -68,15 +68,15 @@ trap_init(void)
   // LAB 3: Your code here.
   // Assume we're looping through everythign here:
   int i = 0;
-  for (;i <= 20; i++) {
+  for (;i <= 47; i++) {
     // We'll disable multiple interrupts until we have reason to do so (NMI might need it.)
     SETGATE(idt[i], 0, GD_KT, (trapentry[i]), 0);
   }
 
-  // Breakpoints should be handled in user mode.
+  // Breakpoints can be generated in user mode!
   SETGATE(idt[T_BRKPT], 0, GD_KT, (trapentry[T_BRKPT]), 3);
   // Assume trapentries are directly after the ones above.
-  SETGATE(idt[T_SYSCALL], 0, GD_KT, (trapentry[++i]), 3);
+  SETGATE(idt[T_SYSCALL], 0, GD_KT, (trapentry[i]), 3);
   SETGATE(idt[T_DEFAULT], 0, GD_KT, (trapentry[++i]), 0);
 
   // Per-CPU setup
@@ -158,8 +158,20 @@ trap_dispatch(struct Trapframe *tf)
   // LAB 3: Your code here.
   if (tf->tf_trapno == T_PGFLT) {
     page_fault_handler(tf);
+	return;
   } else if (tf->tf_trapno == T_BRKPT) {
     monitor(tf);
+	return;
+  } else if (tf->tf_trapno == T_SYSCALL) {
+    tf->tf_regs.reg_eax =
+      syscall(
+        tf->tf_regs.reg_eax,
+        tf->tf_regs.reg_edx,
+        tf->tf_regs.reg_ecx,
+        tf->tf_regs.reg_ebx,
+        tf->tf_regs.reg_edi,
+        tf->tf_regs.reg_esi);
+	return;
   }
 
   // Unexpected trap: The user process or the kernel has a bug.
@@ -225,7 +237,7 @@ page_fault_handler(struct Trapframe *tf)
   // LAB 3: Your code here.
   if ((tf->tf_cs & 3) == 0) {
     // Kernel pagefaults mean errors elsewhere! I cri.
-    panic("The kenrnel produced a page fault!");
+    panic("The kernel produced a page fault!");
   }
 
   // We've already handled kernel-mode exceptions, so if we get here,
