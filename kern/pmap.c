@@ -624,6 +624,26 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
   // LAB 3: Your code here.
 
+  // We want to check the first address passed in, then we want to be page aligned.
+  uintptr_t start = (uintptr_t) va;
+  // Make sure we check the entire page.
+  uintptr_t end = (uintptr_t) ROUNDUP(va + len, PGSIZE);
+
+  // We want page aligned after the first check.
+  for (;start < end; start = ROUNDUP(start + PGSIZE, PGSIZE)) {
+    pte_t* curPte = pgdir_walk(env->env_pgdir, (void*) start, false);
+
+    // Ulim check
+    if (start > ULIM) {
+      user_mem_check_addr = start;
+      return -E_FAULT;
+      // Check if we have permissions and if the page exists.
+    } else if (!curPte || (*curPte & (perm | PTE_P)) != (perm | PTE_P)) {
+      user_mem_check_addr = start;
+      return -E_FAULT;
+    }
+  }
+
   return 0;
 }
 
