@@ -65,14 +65,26 @@ static const char *trapname(int trapno)
   return "(unknown trap)";
 }
 
+extern uint32_t trapentry[];
 
 void
 trap_init(void)
 {
   extern struct Segdesc gdt[];
 
-
   // LAB 3: Your code here.
+  // Assume we're looping through everythign here:
+  int i = 0;
+  for (;i <= 47; i++) {
+    // We'll disable multiple interrupts until we have reason to do so (NMI might need it.)
+    SETGATE(idt[i], 0, GD_KT, (trapentry[i]), 0);
+  }
+
+  // Breakpoints can be generated in user mode!
+  SETGATE(idt[T_BRKPT], 0, GD_KT, (trapentry[T_BRKPT]), 3);
+  // Assume trapentries are directly after the ones above.
+  SETGATE(idt[T_SYSCALL], 0, GD_KT, (trapentry[i]), 3);
+  SETGATE(idt[T_DEFAULT], 0, GD_KT, (trapentry[++i]), 0);
 
   // Per-CPU setup
   trap_init_percpu();
@@ -174,6 +186,23 @@ trap_dispatch(struct Trapframe *tf)
 {
   // Handle processor exceptions.
   // LAB 3: Your code here.
+  if (tf->tf_trapno == T_PGFLT) {
+    page_fault_handler(tf);
+	return;
+  } else if (tf->tf_trapno == T_BRKPT) {
+    monitor(tf);
+	return;
+  } else if (tf->tf_trapno == T_SYSCALL) {
+    tf->tf_regs.reg_eax =
+      syscall(
+        tf->tf_regs.reg_eax,
+        tf->tf_regs.reg_edx,
+        tf->tf_regs.reg_ecx,
+        tf->tf_regs.reg_ebx,
+        tf->tf_regs.reg_edi,
+        tf->tf_regs.reg_esi);
+	return;
+  }
 
   // Handle spurious interrupts
   // The hardware sometimes raises these because of noise on the
@@ -270,6 +299,10 @@ page_fault_handler(struct Trapframe *tf)
   // Handle kernel-mode page faults.
 
   // LAB 3: Your code here.
+  if ((tf->tf_cs & 1) == 0) {
+    // Kernel pagefaults mean errors elsewhere! I cri.
+    panic("The kernel produced a page fault!");
+  }
 
   // We've already handled kernel-mode exceptions, so if we get here,
   // the page fault happened in user mode.
@@ -310,4 +343,3 @@ page_fault_handler(struct Trapframe *tf)
   print_trapframe(tf);
   env_destroy(curenv);
 }
-
