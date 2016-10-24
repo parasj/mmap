@@ -11,24 +11,54 @@ void sched_halt(void);
 void
 sched_yield(void)
 {
-  struct Env *idle;
+  struct Env* idle;
 
-        // Implement simple round-robin scheduling.
-        //
-        // Search through 'envs' for an ENV_RUNNABLE environment in
-        // circular fashion starting just after the env this CPU was
-        // last running.  Switch to the first such environment found.
-        //
-        // If no envs are runnable, but the environment previously
-        // running on this CPU is still ENV_RUNNING, it's okay to
-        // choose that environment.
-        //
-        // Never choose an environment that's currently running on
-        // another CPU (env_status == ENV_RUNNING). If there are
-        // no runnable environments, simply drop through to the code
-        // below to halt the cpu.
+  // Implement simple round-robin scheduling.
+  //
+  // Search through 'envs' for an ENV_RUNNABLE environment in
+  // circular fashion starting just after the env this CPU was
+  // last running.  Switch to the first such environment found.
+  //
+  // If no envs are runnable, but the environment previously
+  // running on this CPU is still ENV_RUNNING, it's okay to
+  // choose that environment.
+  //
+  // Never choose an environment that's currently running on
+  // another CPU (env_status == ENV_RUNNING). If there are
+  // no runnable environments, simply drop through to the code
+  // below to halt the cpu.
 
   // LAB 4: Your code here.
+
+  uint32_t index = 0;
+  int notFound = true;
+  if (curenv) {
+    for (int i  = 0; i < NENV; i++) {
+      if (&envs[i] == curenv) {
+        index = i;
+        notFound = false;
+        break;
+      }
+    }
+  } else {
+    notFound = true;
+  }
+
+  // Things after selected
+	for (uint32_t i = notFound ? 0 : index + 1; i < NENV; i++) {
+		if (envs[i].env_status == ENV_RUNNABLE)
+			env_run(&envs[i]);
+	}
+
+  // Things before selected
+	for (uint32_t i = 0; i < index; i++) {
+		if (envs[i].env_status == ENV_RUNNABLE)
+			env_run(&envs[i]);
+	}
+
+  if (curenv != NULL && curenv->env_status == ENV_RUNNING) {
+    env_run(curenv);
+  }
 
   // sched_halt never returns
   sched_halt();
@@ -80,4 +110,3 @@ sched_halt(void)
     "jmp 1b\n"
     : : "a" (thiscpu->cpu_ts.ts_esp0));
 }
-

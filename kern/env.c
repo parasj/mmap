@@ -550,17 +550,23 @@ env_run(struct Env *e)
   if (e->env_status == ENV_NOT_RUNNABLE || e->env_status == ENV_DYING) {
     panic("Tried to start an env that was not possible to start.");
   }
-  e->env_status = ENV_RUNNABLE;
+
+  // Reset current CPU's envs to env_runnable
+	if (curenv != NULL && curenv->env_status == ENV_RUNNING) {
+		curenv->env_status = ENV_RUNNABLE;
+  }
+
   curenv = e;
-  e->env_status = ENV_RUNNING;
-  e->env_runs++;
+  curenv->env_runs++;
+  curenv->env_status = ENV_RUNNING;
   lcr3(PADDR(e->env_pgdir));
 
+  unlock_kernel();
   // Hint: This function loads the new environment's state from
   //	e->env_tf.  Go back through the code you wrote above
   //	and make sure you have set the relevant parts of
   //	e->env_tf to sensible values.
-  env_pop_tf(&e->env_tf);
+  env_pop_tf(&curenv->env_tf);
 
   // LAB 3: Your code here.
 

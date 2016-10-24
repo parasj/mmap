@@ -254,6 +254,7 @@ trap(struct Trapframe *tf)
     // serious kernel work.
     // LAB 4: Your code here.
     assert(curenv);
+    lock_kernel();
 
     // Garbage collect if current enviroment is a zombie
     if (curenv->env_status == ENV_DYING) {
@@ -301,7 +302,7 @@ page_fault_handler(struct Trapframe *tf)
   // LAB 3: Your code here.
   if ((tf->tf_cs & 1) == 0) {
     // Kernel pagefaults mean errors elsewhere! I cri.
-    panic("The kernel produced a page fault!");
+	  panic("The kernel produced a page fault: 0x%08x", fault_va);
   }
 
   // We've already handled kernel-mode exceptions, so if we get here,
