@@ -224,7 +224,7 @@ mem_init(void)
   // we just set up the mapping anyway.
   // Permissions: kernel RW, user NONE
   // Your code goes here:
-  boot_map_region(kern_pgdir, KERNBASE, ROUNDDOWN(0x100000000 - KERNBASE, PGSIZE), (physaddr_t) 0, PTE_P | PTE_W);
+  boot_map_region(kern_pgdir, KERNBASE, 0x100000000 - KERNBASE - 1, (physaddr_t) 0, PTE_P | PTE_W);
   // cprintf("%d\n", PDX(KERNBASE + (npages * 2) * PGSIZE));
 
   // Initialize the SMP-related parts of the memory map
@@ -436,35 +436,29 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
+
   uint32_t dir = PDX(va);
   uint32_t table = PTX(va);
 
-  if (!(pgdir[dir] & PTE_P) && !create) {
-    // The pgdir we need isn't valid! Don't continue if not create.
-	  return NULL;
-  }
-
   // I hope this is right.
-  pgdir[dir] |= PTE_P | PTE_U | PTE_W | PTE_G;
-  pte_t* pgtbl = (pte_t*) KADDR(PTE_ADDR(pgdir[dir]));
-  pte_t pgFrame = pgtbl[table];
+  pte_t* pgtbl = &pgdir[dir];
+  pte_t pgFrame = pgtbl[dir];
 
-  if ((!(pgFrame & PTE_P)) || PGNUM(PTE_ADDR(pgFrame)) >= npages || pa2page(PTE_ADDR(pgFrame))->pp_ref == 0) {
-    if (!create) {
-      return NULL;
-    }
+	if (!(*pgtbl & PTE_P) && !create)
+  		return NULL;
 
+  if (create && (!(*pgtbl & PTE_P))) {
     // Create and place a pte in pgFrame
     struct PageInfo* pgInfo = page_alloc(ALLOC_ZERO);
     if (!pgInfo) {
       return NULL;
     }
     pgInfo->pp_ref++;
-    pgtbl[table] = PTE_ADDR(page2pa(pgInfo));
-    pgtbl[table] |= PTE_P;
+		*pgtbl = (page2pa(pgInfo) | PTE_P | PTE_U | PTE_W);
   }
 
-  return &pgtbl[table];
+	pte_t *pte_base = KADDR(PTE_ADDR(*pgtbl));
+	return &pte_base[table];
 }
 
 //
@@ -482,21 +476,19 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
-  size /= PGSIZE;
-  struct PageInfo* pg = pa2page(pa);
-  // cprintf("%d %d\n", size, npages);
-  while(size > 0) {
+  // The maximum virtual addr
+  uint32_t hard_stop = 0xFFFFF000;
+  uint64_t end = va + size;
 
-    // Change it to be what we want
-    if (page_insert(pgdir, pg, (void*) va, perm | PTE_P)) {
-      // Error
-      panic("Something went wrong in a map!");
-    }
-    // Move to the next entry
-    pg++;
+  while (va < end) {
+    pte_t* pte = pgdir_walk(pgdir, (void *) va, true);
+    // Kind of a hack but w/e
+    *pte = (pa | perm | PTE_P);
+    if (va >= hard_stop)
+      break;
+
     va += PGSIZE;
     pa += PGSIZE;
-    size--;
   }
 }
 
