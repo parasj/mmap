@@ -528,41 +528,19 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-  pte_t* pte = pgdir_walk(pgdir, va, 0);
-  int tlb = false;
+  pte_t* pte = pgdir_walk(pgdir, va, true);
   if (pte != NULL) {
-    if (pp == pa2page(PTE_ADDR(*pte))) {
-      // Special case, not really too much of a hack.
-      pp->pp_ref--;
-    } else {
-      // We need to wipe the current pte
-      struct PageInfo* ppRemove = pa2page(PTE_ADDR(*pte));
-      ppRemove->pp_ref = 1; // Force deletion (maybe remove?)
-      // This will  handle decrementing our ref count (and freeing it)
-      page_remove(pgdir, va);
-      tlb = true;
-    }
+    pp->pp_ref++;
+  } else {
+    return -E_NO_MEM;
   }
 
-  pgdir = &pgdir[PDX(va)];
-  if (!(*pgdir & PTE_P)) {
-    // Add a page table
-    struct PageInfo* pgI = page_alloc(ALLOC_ZERO);
-    if (!pgI) {
-      return -E_NO_MEM;
-    }
-    pgI->pp_ref++;
-    // We can be liberal here since more permissions will come in in the page table entry.
-    *pgdir = page2pa(pgI) | PTE_P | PTE_W | PTE_U;
+  if (PTE_P & *pte) {
+    page_remove(pgdir, va);
   }
 
-  ((pde_t*)KADDR(PTE_ADDR(*pgdir)))[PTX(va)] = page2pa(pp) | PTE_P | perm;
-  pp->pp_ref++;
-
-  if (tlb) {
-    tlb_invalidate(pgdir, va);
-  }
-
+  *pte = page2pa(pp) | perm | PTE_P;
+	pgdir[PDX(va)] |= perm;
   return 0;
 }
 
