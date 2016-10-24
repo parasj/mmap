@@ -298,23 +298,23 @@ page_init(void)
   // Change your code to mark the physical page at MPENTRY_PADDR
   // as in use
 
-      // The example code here marks all physical pages as free.
-      // However this is not truly the case.  What memory is free?
-      //  1) Mark physical page 0 as in use.
-      //     This way we preserve the real-mode IDT and BIOS structures
-      //     in case we ever need them.  (Currently we don't, but...)
-      //  2) The rest of base memory, [PGSIZE, npages_basemem * PGSIZE)
-      //     is free.
-      //  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
-      //     never be allocated.
-      //  4) Then extended memory [EXTPHYSMEM, ...).
-      //     Some of it is in use, some is free. Where is the kernel
-      //     in physical memory?  Which pages are already in use for
-      //     page tables and other data structures?
-      //
-      // Change the code to reflect this.
-      // NB: DO NOT actually touch the physical memory corresponding to
-      // free pages!
+  // The example code here marks all physical pages as free.
+  // However this is not truly the case.  What memory is free?
+  //  1) Mark physical page 0 as in use.
+  //     This way we preserve the real-mode IDT and BIOS structures
+  //     in case we ever need them.  (Currently we don't, but...)
+  //  2) The rest of base memory, [PGSIZE, npages_basemem * PGSIZE)
+  //     is free.
+  //  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
+  //     never be allocated.
+  //  4) Then extended memory [EXTPHYSMEM, ...).
+  //     Some of it is in use, some is free. Where is the kernel
+  //     in physical memory?  Which pages are already in use for
+  //     page tables and other data structures?
+  //
+  // Change the code to reflect this.
+  // NB: DO NOT actually touch the physical memory corresponding to
+  // free pages!
   size_t i;
 
   // cprintf("%d\n", PGNUM(IOPHYSMEM));
@@ -326,10 +326,9 @@ page_init(void)
   for (i = 1; i < npages; i++) {
     physaddr_t current = page2pa(&pages[i]);
     // Lets not wipe kernel memory, or anything we've boot_alloc'd before. (or i/o stuff)
-    if (i < npages_basemem || (current > EXTPHYSMEM + 0x400000 && (void*) current != kern_pgdir &&
-                               (i < PGNUM(pages) || i > PGNUM(pages) + npages))) {
-    // if (i < npages_basemem || ((i < PGNUM(IOPHYSMEM) || i > PGNUM(EXTPHYSMEM)) && i != PGNUM(kern_pgdir)
-    //                            && (i < PGNUM(pages) || i > PGNUM(pages) + npages))) {
+    if ((i < npages_basemem || (current > EXTPHYSMEM + 0x400000 && (void*) current != kern_pgdir &&
+                               (i < PGNUM(pages) || i > PGNUM(pages) + npages)))
+        && i != PGNUM(MPENTRY_PADDR)) {
       // Free page
       pages[i].pp_ref = 0;
       pages[i].pp_link = page_free_list;
@@ -665,7 +664,15 @@ mmio_map_region(physaddr_t pa, size_t size)
   // Hint: The staff solution uses boot_map_region.
   //
   // Your code here:
-  panic("mmio_map_region not implemented");
+  uint32_t upsize = ROUNDUP(size, PGSIZE);
+  if (upsize + base > MMIOLIM) {
+    panic("We ran out of memory for a memory map :c");
+  }
+
+  // Actually do the mapping!
+  boot_map_region(kern_pgdir, base, upsize, pa, PTE_PCD | PTE_PWT | PTE_W);
+
+  return (void*) (base + upsize);
 }
 
 static uintptr_t user_mem_check_addr;
