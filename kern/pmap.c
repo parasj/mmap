@@ -212,7 +212,8 @@ mem_init(void)
   //       overwrite memory.  Known as a "guard page".
   //     Permissions: kernel RW, user NONE
   // Your code goes here:
-  boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_P | PTE_W);
+  // We're mapping boot kernel mappings in mem_init_mp now!
+  // boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_P | PTE_W);
 
 
   //////////////////////////////////////////////////////////////////////
