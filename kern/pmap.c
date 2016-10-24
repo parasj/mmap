@@ -277,6 +277,11 @@ mem_init_mp(void)
   //
   // LAB 4: Your code here:
 
+  uint32_t offset = 0;
+  for (int i = 0; i < NCPU; i++) {
+    boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE - offset, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_P | PTE_W);
+    offset += KSTKGAP + KSTKSIZE;
+  }
 }
 
 // --------------------------------------------------------------
@@ -315,20 +320,22 @@ page_init(void)
   // Change the code to reflect this.
   // NB: DO NOT actually touch the physical memory corresponding to
   // free pages!
-  size_t i;
 
   // cprintf("%d\n", PGNUM(IOPHYSMEM));
   // cprintf("%d\n", PGNUM(EXTPHYSMEM));
   // cprintf("%d\n", PGNUM(kern_pgdir));
   // cprintf("%d\n", PGNUM(pages));
   // cprintf("%d\n", PGNUM(pages) + npages);
+
+  size_t i;
   page_free_list = NULL;
   for (i = 1; i < npages; i++) {
     physaddr_t current = page2pa(&pages[i]);
     // Lets not wipe kernel memory, or anything we've boot_alloc'd before. (or i/o stuff)
-    if ((i < npages_basemem || (current > EXTPHYSMEM + 0x400000 && (void*) current != kern_pgdir &&
-                               (i < PGNUM(pages) || i > PGNUM(pages) + npages)))
-        && i != PGNUM(MPENTRY_PADDR)) {
+    if (((i < npages_basemem)
+         || (current > EXTPHYSMEM + 0x400000 && (void*) current != kern_pgdir &&
+             (i < PGNUM(pages) || i > PGNUM(pages) + npages)))
+        && i != PGNUM(MPENTRY_PADDR) && i != 0) {
       // Free page
       pages[i].pp_ref = 0;
       pages[i].pp_link = page_free_list;
@@ -339,12 +346,7 @@ page_init(void)
       pages[i].pp_link = NULL;
     }
   }
-
-  struct PageInfo* pg = page_free_list;
-  while(pg != NULL){
-    // cprintf("%p\n", pg);
-    pg = pg->pp_link;
-  }
+  return;
 }
 
 //
@@ -672,7 +674,8 @@ mmio_map_region(physaddr_t pa, size_t size)
   // Actually do the mapping!
   boot_map_region(kern_pgdir, base, upsize, pa, PTE_PCD | PTE_PWT | PTE_W);
 
-  return (void*) (base + upsize);
+  base += upsize;
+  return (void*) (base - upsize);
 }
 
 static uintptr_t user_mem_check_addr;
@@ -1132,6 +1135,7 @@ check_page(void)
   // check that they're page-aligned
   assert(mm1 % PGSIZE == 0 && mm2 % PGSIZE == 0);
   // check that they don't overlap
+  // cprintf("%x %x\n", mm1 + 8096, mm2);
   assert(mm1 + 8096 <= mm2);
   // check page mappings
   assert(check_va2pa(kern_pgdir, mm1) == 0);

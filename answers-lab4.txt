@@ -1,0 +1,2 @@
+
+1. The MPBOOTPHYS macro is needed since we are executing code at a different location than the entrypoint of the processor. Since we are in the kernel, we need to translate our addresses to physical inorder to set our GDT. If we left out this step, we would enter the wrong GDT for this processor (since it would be a virtual address) causing a ton of memory problems.
