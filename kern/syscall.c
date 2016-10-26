@@ -345,6 +345,16 @@ sys_ipc_recv(void *dstva)
   return 0;
 }
 
+// Allows processes to increase their nice values.
+static int sys_renice(int32_t newNice) {
+  if (newNice > curenv->nice) {
+    curenv->nice = newNice;
+  } else {
+    return -E_INVAL;
+  }
+  return 0;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -375,6 +385,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
     return sys_page_map(a1, (void *) a2, a3, (void *) a4, a5);
   } else if (syscallno == SYS_page_unmap) {
     return sys_page_unmap(a1, (void *) a2);
+  } else if (syscallno == SYS_renice) {
+    return sys_renice(a1);
   } else {
     return -E_INVAL;
   }

@@ -6,3 +6,9 @@
 3. We can still access e since it is mapped to the same location in both pagedirs, so we can access it from both our kernel pgdir and the user pgdir (in kernel mode).
 
 4. This is needed so the environement can continue running without knowing that it is stopped, for example, if the kernel preemts that environment. These registers are stored into the trapframe when the environement is switched.
+
+CHALLENGE PROBLEM:
+I completed the fixed-priority scheduler challenge assignment. It's implemented in sched.c.
+To do it, I first had to add a 'nice' value to each env (like linux does). I set the default niceness to 0, and if all processes have the same niceness, this scheduler acts like round robin when all the nice values are the same. The nice value is implemented in env.{c,h}, and is simply an additional macro to create envs, called CREATE_ENV_NICE. You can also set env niceness manually via env->nice.
+
+The implementation is simple, instead of choosing the first available process, loop through all of them, and select the one with the lowest nice value. If the current process has the lowest nice value, we will continue executing that one. If there are two processes tied, the currently executing process will be evicted (behaves exactly like round robin in ties).

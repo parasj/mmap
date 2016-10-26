@@ -44,16 +44,21 @@ sched_yield(void)
     notFound = true;
   }
 
+  uint32_t initialSearch = notFound ? 0 : index + 1;
+  struct Env* meanest = NULL;
   // Things after selected
-  for (uint32_t i = notFound ? 0 : index + 1; i < NENV; i++) {
-    if (envs[i].env_status == ENV_RUNNABLE)
-      env_run(&envs[i]);
+  for (uint32_t i = 0; i < NENV; i++) {
+    uint32_t index = (i + initialSearch) % NENV;
+    if (envs[index].env_status == ENV_RUNNABLE
+        && (!meanest || envs[index].nice < meanest->nice))
+      meanest = &envs[index];
   }
 
-  // Things before selected
-  for (uint32_t i = 0; i < index; i++) {
-    if (envs[i].env_status == ENV_RUNNABLE)
-      env_run(&envs[i]);
+  // If we found a valid thing to run, run it
+  // Meanest will contain the lowest nice process we could run.
+  // If the current env is meaner and is running, keep it on!
+  if (meanest && !(curenv && curenv->nice < meanest->nice && curenv->env_status == ENV_RUNNING)) {
+    env_run(meanest);
   }
 
   if (curenv != NULL && curenv->env_status == ENV_RUNNING) {

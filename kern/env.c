@@ -249,7 +249,7 @@ env_alloc_nice(struct Env **newenv_store, envid_t parent_id, int nice)
   e->env_runs = 0;
 
   // Set the env niceness to 0 by default
-  e->nice = 0;
+  e->nice = nice;
 
   // Clear out all the saved register state,
   // to prevent the register values
