@@ -212,6 +212,10 @@ env_setup_vm(struct Env *e)
   return 0;
 }
 
+int env_alloc(struct Env** new, envid_t parent) {
+  return env_alloc_nice(new, parent, 0);
+}
+
 //
 // Allocates and initializes a new environment.
 // On success, the new environment is stored in *newenv_store.
@@ -221,7 +225,7 @@ env_setup_vm(struct Env *e)
 //	-E_NO_MEM on memory exhaustion
 //
 int
-env_alloc(struct Env **newenv_store, envid_t parent_id)
+env_alloc_nice(struct Env **newenv_store, envid_t parent_id, int nice)
 {
   struct Env *e = env_free_list;
   if (!e)
@@ -243,6 +247,9 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
   e->env_type = ENV_TYPE_USER;
   e->env_status = ENV_RUNNABLE;
   e->env_runs = 0;
+
+  // Set the env niceness to 0 by default
+  e->nice = 0;
 
   // Clear out all the saved register state,
   // to prevent the register values
@@ -417,11 +424,11 @@ load_icode(struct Env *e, uint8_t *binary)
 // The new env's parent ID is set to 0.
 //
 void
-env_create(uint8_t *binary, enum EnvType type)
+env_create(uint8_t *binary, enum EnvType type, int nice)
 {
   // LAB 3: Your code here.
   struct Env* myEnv;
-  env_alloc(&myEnv, 0);
+  env_alloc_nice(&myEnv, 0, nice);
   load_icode(myEnv, binary);
   // myEnv->env_type = ENV_RUNNABLE;
   myEnv->env_parent_id = 0;

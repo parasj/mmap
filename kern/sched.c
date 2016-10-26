@@ -45,16 +45,16 @@ sched_yield(void)
   }
 
   // Things after selected
-	for (uint32_t i = notFound ? 0 : index + 1; i < NENV; i++) {
-		if (envs[i].env_status == ENV_RUNNABLE)
-			env_run(&envs[i]);
-	}
+  for (uint32_t i = notFound ? 0 : index + 1; i < NENV; i++) {
+    if (envs[i].env_status == ENV_RUNNABLE)
+      env_run(&envs[i]);
+  }
 
   // Things before selected
-	for (uint32_t i = 0; i < index; i++) {
-		if (envs[i].env_status == ENV_RUNNABLE)
-			env_run(&envs[i]);
-	}
+  for (uint32_t i = 0; i < index; i++) {
+    if (envs[i].env_status == ENV_RUNNABLE)
+      env_run(&envs[i]);
+  }
 
   if (curenv != NULL && curenv->env_status == ENV_RUNNING) {
     env_run(curenv);
