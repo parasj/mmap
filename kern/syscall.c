@@ -89,13 +89,13 @@ sys_exofork(void)
   int ret = env_alloc(&env, curenv->env_id);
   if (ret < 0) {
     // We had an error allocating!
-		cprintf("Error in env allocation: %e\n", ret);
+    cprintf("Error in env allocation: %e\n", ret);
     return -E_INVAL;
   }
-	env->env_status = ENV_NOT_RUNNABLE;
-	memcpy((void *) &env->env_tf, (void *) &curenv->env_tf, sizeof(struct Trapframe));
-	// new_env->env_tf = curenv->env_tf;
-	env->env_tf.tf_regs.reg_eax = 0;
+  env->env_status = ENV_NOT_RUNNABLE;
+  memcpy((void *) &env->env_tf, (void *) &curenv->env_tf, sizeof(struct Trapframe));
+  // new_env->env_tf = curenv->env_tf;
+  env->env_tf.tf_regs.reg_eax = 0;
 
   return env->env_id;
 }
@@ -126,7 +126,8 @@ sys_env_set_status(envid_t envid, int status)
   if (ret < 0) {
     return -E_BAD_ENV;
   }
-	env->env_status = status;
+  env->env_status = status;
+  return 0;
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
@@ -193,6 +194,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
   if (ret != 0) {
     return -E_NO_MEM;
   }
+  return 0;
 }
 
 // Map the page of memory at 'srcva' in srcenvid's address space
@@ -246,10 +248,10 @@ sys_page_map(envid_t srcenvid, void *srcva,
   pte_t *pte;
   struct PageInfo *pp = page_lookup(src->env_pgdir, srcva, &pte);
   if (NULL == pp || (((perm & PTE_W) == PTE_W) && ((*pte & PTE_W) == 0)))
-	  return -E_INVAL;
+    return -E_INVAL;
 
   if (page_insert(dst->env_pgdir, pp, dstva, perm) < 0)
-	  return -E_NO_MEM;
+    return -E_NO_MEM;
 
   return 0;
 }
@@ -264,19 +266,19 @@ sys_page_map(envid_t srcenvid, void *srcva,
 static int
 sys_page_unmap(envid_t envid, void *va)
 {
-	// Hint: This function is a wrapper around page_remove().
+  // Hint: This function is a wrapper around page_remove().
 
-	// LAB 4: Your code here.
-	struct Env *env;
+  // LAB 4: Your code here.
+  struct Env *env;
 
-	if (envid2env(envid, &env, 1) != 0)
-		return -E_BAD_ENV;
+  if (envid2env(envid, &env, 1) != 0)
+    return -E_BAD_ENV;
 
-	if ((uint32_t) ROUNDDOWN(va, PGSIZE) != (uint32_t)va || (uint32_t) va >= UTOP)
-		return -E_INVAL;
+  if ((uint32_t) ROUNDDOWN(va, PGSIZE) != (uint32_t)va || (uint32_t) va >= UTOP)
+    return -E_INVAL;
 
-	page_remove(env->env_pgdir, va);
-
+  page_remove(env->env_pgdir, va);
+  return 0;
 }
 
 // Try to send 'value' to the target env 'envid'.
@@ -361,8 +363,18 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
   } else if (syscallno == SYS_env_destroy) {
     return sys_env_destroy(a1);
   } else if (syscallno == SYS_yield){
-	  sys_yield();
+    sys_yield();
     return 0;
+  } else if (syscallno == SYS_exofork) {
+    return sys_exofork();
+  } else if (syscallno == SYS_env_set_status) {
+    return sys_env_set_status(a1, a2);
+  } else if (syscallno == SYS_page_alloc) {
+    return sys_page_alloc(a1, (void *) a2, a3);
+  } else if (syscallno == SYS_page_map) {
+    return sys_page_map(a1, (void *) a2, a3, (void *) a4, a5);
+  } else if (syscallno == SYS_page_unmap) {
+    return sys_page_unmap(a1, (void *) a2);
   } else {
     return -E_INVAL;
   }
