@@ -393,6 +393,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
     return sys_page_unmap(a1, (void *) a2);
   } else if (syscallno == SYS_renice) {
     return sys_renice(a1);
+  } else if (syscallno == SYS_env_set_pgfault_upcall) {
+    return sys_env_set_pgfault_upcall(a1, (void*) a2);
   } else {
     return -E_INVAL;
   }
