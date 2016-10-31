@@ -29,10 +29,9 @@ set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
   if (_pgfault_handler == 0) {
     // First time through!
     // LAB 4: Your code here.
-
     // Allocate room for error stack
 	  int ret = sys_page_alloc(thisenv->env_id, (void*) (UXSTACKTOP - PGSIZE), PTE_U | PTE_P | PTE_W);
-    if (!ret) {
+    if (ret) {
 			panic("Can't allocate a page! :C");
     }
 
