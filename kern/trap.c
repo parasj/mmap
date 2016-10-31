@@ -352,8 +352,8 @@ page_fault_handler(struct Trapframe *tf)
 
   // top of stack
   uint32_t top;
-  if (tf->tf_esp >= UXSTACKTOP - PGSIZE
-      && tf->tf_esp <= UXSTACKTOP - 1 ) {
+  if (tf->tf_esp >= USTACKTOP - PGSIZE
+      && tf->tf_esp <= USTACKTOP - 1 ) {
     // Our first call
     top = UXSTACKTOP;
   } else {
