@@ -124,7 +124,7 @@ trap_init_percpu(void)
 
   // Initialize the TSS slot of the gdt.
   gdt[(GD_TSS0 >> 3) + thiscpu->cpu_id] = SEG16(STS_T32A, (uint32_t)(&(thiscpu->cpu_ts)),
-                            sizeof(struct Taskstate) - 1, 0);
+                                                sizeof(struct Taskstate) - 1, 0);
   gdt[(GD_TSS0 >> 3) + thiscpu->cpu_id].sd_s = 0;
 
   // Load the TSS selector (like other segment selectors, the
@@ -188,10 +188,10 @@ trap_dispatch(struct Trapframe *tf)
   // LAB 3: Your code here.
   if (tf->tf_trapno == T_PGFLT) {
     page_fault_handler(tf);
-	return;
+    return;
   } else if (tf->tf_trapno == T_BRKPT) {
     monitor(tf);
-	return;
+    return;
   } else if (tf->tf_trapno == T_SYSCALL) {
     tf->tf_regs.reg_eax =
       syscall(
@@ -201,7 +201,7 @@ trap_dispatch(struct Trapframe *tf)
         tf->tf_regs.reg_ebx,
         tf->tf_regs.reg_edi,
         tf->tf_regs.reg_esi);
-	return;
+    return;
   }
 
   // Handle spurious interrupts
@@ -302,7 +302,7 @@ page_fault_handler(struct Trapframe *tf)
   // LAB 3: Your code here.
   if ((tf->tf_cs & 1) == 0) {
     // Kernel pagefaults mean errors elsewhere! I cri.
-	  panic("The kernel produced a page fault: 0x%08x", fault_va);
+    panic("The kernel produced a page fault: 0x%08x", fault_va);
   }
 
   // We've already handled kernel-mode exceptions, so if we get here,
@@ -337,10 +337,48 @@ page_fault_handler(struct Trapframe *tf)
   //   (the 'tf' variable points at 'curenv->env_tf').
 
   // LAB 4: Your code here.
-
   // Destroy the environment that caused the fault.
-  cprintf("[%08x] user fault va %08x ip %08x\n",
-          curenv->env_id, fault_va, tf->tf_eip);
-  print_trapframe(tf);
-  env_destroy(curenv);
+
+  // No upcall or not valid stack frame or not enough room on exeption stack or not enough room on user stack.
+  if (!curenv || !curenv->env_pgfault_upcall
+      || (tf->tf_esp > USTACKTOP && (tf->tf_esp < (UXSTACKTOP - PGSIZE)))
+      || tf->tf_esp > UXSTACKTOP) {
+    cprintf("[%08x] user fault va %08x ip %08x\n",
+            curenv->env_id, fault_va, tf->tf_eip);
+    print_trapframe(tf);
+    env_destroy(curenv);
+  }
+  // Assume valid address now
+
+  // top of stack
+  uint32_t top;
+  if (tf->tf_esp >= UXSTACKTOP - PGSIZE
+      && tf->tf_esp <= UXSTACKTOP - 1 ) {
+    // Our first call
+    top = UXSTACKTOP;
+  } else {
+    // A recursive call
+    // Storing an extra word
+    top = tf->tf_esp - sizeof(int);
+  }
+  // Store a trapframe
+  top -= sizeof(struct UTrapframe);
+
+  // Check to see if user can write to it's stack
+	user_mem_assert(curenv, (void*)top, 1, PTE_W | PTE_U);
+
+	struct UTrapframe *u_tf = (struct UTrapframe*)top;
+	u_tf->utf_fault_va = fault_va;
+	u_tf->utf_err = tf->tf_err;
+	u_tf->utf_regs = tf->tf_regs;
+	u_tf->utf_eip = tf->tf_eip;
+	u_tf->utf_eflags = tf->tf_eflags;
+	u_tf->utf_esp = tf->tf_esp;
+
+  // Stack is top of stack
+	tf->tf_esp = (uintptr_t) top;
+  // Start at our new function
+	tf->tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
+
+	env_run(curenv);
 }
