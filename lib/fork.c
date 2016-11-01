@@ -102,7 +102,37 @@ envid_t
 fork(void)
 {
   // LAB 4: Your code here.
-  panic("fork not implemented");
+  set_pgfault_handler(pgfault);
+
+  envid_t envid = sys_exofork();
+
+  if (envid < 0)
+    panic("Error forking process");
+
+  if (!envid) {
+    // We're in the child, fix thisenv
+    thisenv = &envs[ENVX(sys_getenvid())];
+    return 0;
+  }
+
+  for (int i = 0; i < PGNUM(UTOP); i++) {
+    // No non-present dirs
+    if ((uvpd[(int)PGADDR(0,i,0)] & PTE_P)
+        // No non-present pages
+        && uvpd[i] & PTE_P
+        // No user excpetion stack
+        && i << PGSHIFT  != UXSTACKTOP - PGSIZE) {
+      duppage(envid, i);
+    }
+  }
+
+  if (sys_page_alloc(envid, (void*)(UXSTACKTOP - PGSIZE), PTE_U | PTE_W | PTE_P))
+    panic("Could not allocate pages.");
+  if (sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall))
+    panic("coud not set upcall");
+  if (sys_env_set_status(envid, ENV_RUNNABLE))
+    panic("could not set runnable");
+  return envid;
 }
 
 // Challenge!
