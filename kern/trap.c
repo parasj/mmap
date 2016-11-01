@@ -341,8 +341,8 @@ page_fault_handler(struct Trapframe *tf)
 
   // No upcall or not valid stack frame or not enough room on exeption stack or not enough room on user stack.
   if (!curenv || !curenv->env_pgfault_upcall
-      || (tf->tf_esp > USTACKTOP && (tf->tf_esp < (UXSTACKTOP - PGSIZE)))
-      || tf->tf_esp > UXSTACKTOP) {
+      || !((tf->tf_esp >= USTACKTOP - PGSIZE && (tf->tf_esp <= USTACKTOP))
+           || (tf->tf_esp >= UXSTACKTOP - PGSIZE && tf->tf_esp <= UXSTACKTOP))) {
     cprintf("[%08x] user fault va %08x ip %08x\n",
             curenv->env_id, fault_va, tf->tf_eip);
     print_trapframe(tf);
