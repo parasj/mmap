@@ -25,16 +25,32 @@ pgfault(struct UTrapframe *utf)
   //   (see <inc/memlayout.h>).
 
   // LAB 4: Your code here.
+  if (!(err & FEC_WR))
+	  panic("pagefault at [%08x]. Not writing.", addr);
+
+	uint32_t pgnum = (uint32_t) ROUNDDOWN(addr, PGSIZE)/ PGSIZE;
+	if (!(uvpt[pgnum] & PTE_COW))
+		panic("pgfault: fault was not on a copy-on-write page\n");
+
 
   // Allocate a new page, map it at a temporary location (PFTEMP),
   // copy the data from the old page to the new page, then move the new
   // page to the old page's address.
   // Hint:
   //   You should make three system calls.
-
   // LAB 4: Your code here.
+  // Allocate a page
+	if ((sys_page_alloc(0, PFTEMP, PTE_U | PTE_W | PTE_P)))
+    panic("Failed allocating a page!");
 
-  panic("pgfault not implemented");
+  // Move data from old to new page
+	memcpy(PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
+
+	if (sys_page_map(0, PFTEMP, 0, ROUNDDOWN(addr, PGSIZE), PTE_U | PTE_W | PTE_P))
+		panic("Failed mapping a page!");
+
+  if (sys_page_unmap(0, PFTEMP))
+    panic("Failed to unmap temp page.");
 }
 
 //
@@ -53,8 +69,16 @@ duppage(envid_t envid, unsigned pn)
 {
   int r;
 
-  // LAB 4: Your code here.
-  panic("duppage not implemented");
+  uint32_t permissions = PTE_P | PTE_U;
+  void *addr = (void*)(pn << PGSHIFT);
+
+  if ((uvpt[pn] & (PTE_W | PTE_COW)))
+    permissions = permissions | PTE_COW;
+
+  if (sys_page_map(0, addr, envid, addr, permissions) < 0)
+    panic("Error mapping %08x", addr);
+  if (sys_page_map(0, addr, 0, addr, permissions) < 0)
+    panic("Error mapping %08x", addr);
   return 0;
 }
 
