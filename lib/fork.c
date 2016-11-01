@@ -117,9 +117,9 @@ fork(void)
 
   for (int i = 0; i < PGNUM(UTOP); i++) {
     // No non-present dirs
-    if ((uvpd[(int)PGADDR(0,i,0)] & PTE_P)
+    if ((uvpd[PDX(PGADDR(0,i,0))] & PTE_P)
         // No non-present pages
-        && uvpd[i] & PTE_P
+        && uvpt[i] & PTE_P
         // No user excpetion stack
         && i << PGSHIFT  != UXSTACKTOP - PGSIZE) {
       duppage(envid, i);
