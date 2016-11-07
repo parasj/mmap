@@ -281,6 +281,9 @@ env_alloc_nice(struct Env **newenv_store, envid_t parent_id, int nice)
   // Also clear the IPC receiving flag.
   e->env_ipc_recving = 0;
 
+  // run user programs with interrupts!
+  e->env_tf.tf_eflags |= FL_IF;
+
   // commit the allocation
   env_free_list = e->env_link;
   *newenv_store = e;
