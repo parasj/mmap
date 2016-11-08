@@ -328,6 +328,34 @@ sys_page_unmap(envid_t envid, void *va)
 static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
+
+  struct Env* env;
+  uint32_t eNum = envid2env(envid, &env, 0);
+  int sendingPage = true;
+
+  if (eNum < 0) {
+    return -E_BAD_ENV;
+  } else if (env->env_ipc_recving == 0) {
+    return -E_IPC_NOT_RECV;
+  }
+  sendingPage = ((uint32_t)env->env_ipc_dstva < UTOP);
+
+  if ((uint32_t)srcva < UTOP && sendingPage) {
+    // aligned
+    if (((uint32_t)srcva % PGSIZE) != 0) {
+      return -E_INVAL;
+    }
+
+    // Permissions
+    if ((perm & (PTE_U | PTE_P)) != (PTE_P | PTE_U)) {
+      return -E_INVAL;
+    } else if (!(perm & PTE_SYSCALL)) {
+      return -E_INVAL;
+    }
+  } else {
+    sendingPage = false;
+  }
+
   // LAB 4: Your code here.
   panic("sys_ipc_try_send not implemented");
 }
