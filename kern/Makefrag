@@ -60,6 +60,7 @@ KERN_BINFILES :=	user/hello \
 # Binary files for LAB4
 KERN_BINFILES +=	user/idle \
 			user/yield \
+      user/yieldrenice \
 			user/dumbfork \
 			user/stresssched \
 			user/faultdie \

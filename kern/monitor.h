@@ -16,5 +16,14 @@ int mon_help(int argc, char **argv, struct Trapframe *tf);
 int mon_infokern(int argc, char **argv, struct Trapframe *tf);
 int mon_infopg(int argc, char **argv, struct Trapframe *tf);
 int mon_backtrace(int argc, char **argv, struct Trapframe *tf);
+int shwmap(int argc, char **argv, struct Trapframe *tf);
+int memchmod(int argc, char **argv, struct Trapframe *tf);
+int vadump(int argc, char **argv, struct Trapframe *tf);
+int padump(int argc, char **argv, struct Trapframe *tf);
+
+int hexsanitize(char*);
+uint32_t hextoi(char*);
+int addrDump(int argc, char** argv, struct Trapframe *tf, int virtual);
+int streq(char*, char*);
 
 #endif  // !JOS_KERN_MONITOR_H

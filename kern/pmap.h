@@ -88,6 +88,8 @@ page2kva(struct PageInfo *pp)
 	return KADDR(page2pa(pp));
 }
 
+physaddr_t va2pa(pde_t *pgdir, uintptr_t va);
+
 pte_t *pgdir_walk(pde_t *pgdir, const void *va, int create);
 
 #endif /* !JOS_KERN_PMAP_H */

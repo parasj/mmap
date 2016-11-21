@@ -1,0 +1,17 @@
+
+1. The MPBOOTPHYS macro is needed since we are executing code at a different location than the entrypoint of the processor. Since we are in the kernel, we need to translate our addresses to physical inorder to set our GDT. If we left out this step, we would enter the wrong GDT for this processor (since it would be a virtual address) causing a ton of memory problems.
+
+2. The seperate cpu stacks are still required as the CPU can still access it's stack even when the kernel is locked. If CPU's shared stacks, a unlocked processor could still override the lock and write to the kernel processor's stack (perhpas preparing to jump into the kernel).
+
+3. We can still access e since it is mapped to the same location in both pagedirs, so we can access it from both our kernel pgdir and the user pgdir (in kernel mode).
+
+4. This is needed so the environement can continue running without knowing that it is stopped, for example, if the kernel preemts that environment. These registers are stored into the trapframe when the environement is switched.
+
+
+CHALLENGE PROBLEM:
+I completed the fixed-priority scheduler challenge assignment. It's implemented in sched.c.
+To do it, I first had to add a 'nice' value to each env (like linux does). I set the default niceness to 0, and if all processes have the same niceness, this scheduler acts like round robin when all the nice values are the same. The nice value is implemented in env.{c,h}, and is simply an additional macro to create envs, called CREATE_ENV_NICE. You can also set env niceness manually via env->nice.
+
+The implementation is simple, instead of choosing the first available process, loop through all of them, and select the one with the lowest nice value. If the current process has the lowest nice value, we will continue executing that one. If there are two processes tied, the currently executing process will be evicted (behaves exactly like round robin in ties).
+
+As an added bonus, I added the ability to renice through a syscall. This only allows process to increase their nice value (decrease their priority). I've implemented it in yeildrenice. It returns -E_INVAL if a process tries to increase it's priority, and renices otherwise (allows decreasing only). The demo includes this, with the renice user space app getting priority the first time slice, then getting preemted until higher priority things finish up!
