@@ -240,16 +240,15 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 		cprintf("serve_write %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
 	// LAB 5: Your code here.
+	struct OpenFile *file;
 	int retVal = openfile_lookup(envid, req->req_fileid, &file);
 	if (retVal) {
     return retVal;
   }
-
-	retVal = file_write(o->o_file, req->req_buf, req->req_n, o->o_fd->fd_offset);
-	if (retVal)
-		o->o_fd->fd_offset += retVal;
-	return retVal;
-
+	int offset = file_write(file->o_file, req->req_buf, req->req_n, file->o_fd->fd_offset);
+	if (offset)
+		file->o_fd->fd_offset += offset;
+	return offset;
 }
 
 // Stat ipc->stat.req_fileid.  Return the file's struct Stat to the
