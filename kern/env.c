@@ -433,7 +433,7 @@ env_create(uint8_t *binary, enum EnvType type, int nice)
   struct Env* myEnv;
   env_alloc_nice(&myEnv, 0, nice);
   load_icode(myEnv, binary);
-  // myEnv->env_type = ENV_RUNNABLE;
+  myEnv->env_type = type;
   myEnv->env_parent_id = 0;
 
   // If this is the file server (type == ENV_TYPE_FS) give it I/O privileges.
