@@ -209,12 +209,23 @@ serve_read(envid_t envid, union Fsipc *ipc)
 {
 	struct Fsreq_read *req = &ipc->read;
 	struct Fsret_read *ret = &ipc->readRet;
+	struct OpenFile *file;
 
 	if (debug)
 		cprintf("serve_read %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
 	// Lab 5: Your code here:
-	return 0;
+	int retVal = openfile_lookup(envid, req->req_fileid, &file);
+	if (retVal) {
+    return retVal;
+  }
+
+	int offset = file_read(file->o_file, ret->ret_buf, req->req_n, file->o_fd->fd_offset);
+	if (offset) {
+		file->o_fd->fd_offset += offset;
+  }
+	return offset;
+
 }
 
 
@@ -343,4 +354,3 @@ umain(int argc, char **argv)
         fs_test();
 	serve();
 }
-
