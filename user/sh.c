@@ -55,7 +55,15 @@ again:
       // then close the original 'fd'.
 
       // LAB 5: Your code here.
-      panic("< redirection not implemented");
+      // Opposite of the output redirection example below
+      if ((fd = open(t, O_RDONLY)) < 0) {
+        cprintf("open %s for reading: %e", t, fd);
+        exit();
+      }
+      if (fd != 1) {
+        dup(fd, 0);
+        close(fd);
+      }
       break;
 
     case '>':                   // Output redirection
@@ -319,4 +327,3 @@ umain(int argc, char **argv)
       wait(r);
   }
 }
-
