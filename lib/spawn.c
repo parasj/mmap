@@ -303,8 +303,11 @@ copy_shared_pages(envid_t child)
 {
   // LAB 5: Your code here.
   // Go through every page, if we need to map it, map it!
-	for (int i = 0; i < UPAGES; i++) {
-		if ((uvpt[i] & PTE_P) &&
+  // GO through all user pages
+	for (int i = 0; i < PGNUM(UTOP); i++) {
+    // Check if this page should be mapped
+		if ((uvpd[i / NPDENTRIES] & PTE_P) &&
+      (uvpt[i] & PTE_P) &&
 			(uvpt[i] & PTE_SHARE)) {
 
 			void* toMap = (void*)(i*PGSIZE);
