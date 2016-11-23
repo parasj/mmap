@@ -302,6 +302,17 @@ static int
 copy_shared_pages(envid_t child)
 {
   // LAB 5: Your code here.
+  // Go through every page, if we need to map it, map it!
+	for (int i = 0; i < UPAGES; i++) {
+		if ((uvpt[i] & PTE_P) &&
+			(uvpt[i] & PTE_SHARE)) {
+
+			void* toMap = (void*)(i*PGSIZE);
+      int ret = sys_page_map(0, toMap, child, toMap, uvpt[i] & PTE_SYSCALL);
+			if (ret)
+        panic("copy_shared_pages failed!");
+    }
+	}
+
   return 0;
 }
-

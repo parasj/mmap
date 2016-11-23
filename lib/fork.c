@@ -67,18 +67,28 @@ pgfault(struct UTrapframe *utf)
 static int
 duppage(envid_t envid, unsigned pn)
 {
-  int r;
+  uint32_t permissions = PTE_P | PTE_COW;
+  void *addr = (void*) (pn << PGSHIFT);
 
-  uint32_t permissions = PTE_P | PTE_U;
-  void *addr = (void*)(pn << PGSHIFT);
+  if ((uvpt[pn] & PTE_SHARE)) {
+    int ret = sys_page_map(thisenv->env_id, addr, envid, addr, uvpt[pn] & PTE_SYSCALL);
+    if (ret) {
+      panic("Could not map shared page!");
+    }
+  } else if ((uvpt[pn] & (PTE_W | PTE_COW))) {
+		if (uvpt[pn] & PTE_U) {
+      permissions |= PTE_U;
+    }
 
-  if ((uvpt[pn] & (PTE_W | PTE_COW)))
-    permissions = permissions | PTE_COW;
+    if (sys_page_map(0, addr, envid, addr, permissions))
+      panic("Error mapping %08x", addr);
+    if (sys_page_map(0, addr, 0, addr, permissions))
+      panic("Error mapping %08x", addr);
+  } else {
+    if (sys_page_map(0, addr, envid, addr, uvpt[pn] & PTE_SYSCALL))
+      panic("Error mapping %08x", addr);
+  }
 
-  if (sys_page_map(0, addr, envid, addr, permissions) < 0)
-    panic("Error mapping %08x", addr);
-  if (sys_page_map(0, addr, 0, addr, permissions) < 0)
-    panic("Error mapping %08x", addr);
   return 0;
 }
 
