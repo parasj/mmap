@@ -2,3 +2,15 @@
 1. We don't need to do anything else, since this data is stored in the env struct.
 
 CHALLENGE:
+
+I decided to implement history via Ctrl-P and Ctrl-N, like a standard terminal
+
+To do this, I made a bunch of changes in readline to store commands while being executed. To do this, I made the buf array longer, and treated it as a 2 d array, storing history
+
+I also needed to overhaul the readline code to work when changing lines, which required a bunch of functions from string.h
+
+As a result of these changes, we also need to clear out the buffers, since we don't store the length of every string in history, so this is a bit slower.
+
+One of the hacks that I needed to do was clear the terminal line. To do this, I just printed out 60 spaces. In a real terminal, we would have escape codes to clear the line, but on the QEMU terminal we don't have that so I can't work with the assumption that we have ASNI escape codes.
+
+I also needed to consider the case where a element of history was selected, then modified, and then executed. The implementation I have should correctly add the new entry to history, and execute properly.
