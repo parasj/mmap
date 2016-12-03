@@ -8,6 +8,7 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/printfmt.c \
 			lib/readline.c \
 			lib/string.c \
+			lib/mmap.c \
 			lib/syscall.c
 
 LIB_SRCFILES :=		$(LIB_SRCFILES) \
