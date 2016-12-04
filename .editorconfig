@@ -27,3 +27,7 @@ indent_style = space
 
 [*.{md,markdown}]
 max_line_length = off
+
+[{makefile,Makefile}]
+indent_style=tab
+

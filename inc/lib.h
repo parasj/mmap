@@ -26,11 +26,24 @@
 // main user program
 void    umain(int argc, char **argv);
 
+
+struct map_dat {
+  int present; // nonzero is present
+  int fd;
+  uint32_t offset;
+  uint32_t perm;
+  void* addr;
+  uint32_t len;
+};
+
+#define MAX_MAPS 100
+
 // libmain.c or entry.S
 extern const char *binaryname;
 extern const volatile struct Env *thisenv;
 extern const volatile struct Env envs[NENV];
 extern const volatile struct PageInfo pages[];
+extern volatile struct map_dat mmap_data[100];
 
 // exit.c
 void    exit(void);
@@ -127,6 +140,7 @@ void    wait(envid_t env);
 
 
 void* mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset);
+int munmap(void *addr, size_t length);
 #define MAP_PRIVATE	0x0000
 #define MAP_SHARED	0x0001
 

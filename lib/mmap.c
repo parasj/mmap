@@ -2,8 +2,12 @@
 #include <inc/lib.h>
 #include <lib/file.c>
 
+
+volatile struct map_dat mmap_data[MAX_MAPS] = {0};
+
 void* mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset) {
 
+  int entry, i, r;
   if (offset) {
     panic("nonzero offsets not supported yet");
   }
@@ -14,7 +18,21 @@ void* mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset) {
 
   int numPages = len/PGSIZE;
   void* mapva = (void*)sys_page_save(0, addr, numPages, PTE_SAV);
-  int r;
+
+  for (i = 0; i < MAX_MAPS; i++) {
+    if (!mmap_data[i].present) {
+      mmap_data[i].present = true;
+      mmap_data[i].fd = fd;
+      mmap_data[i].addr = mapva;
+      mmap_data[i].len = numPages * PGSIZE;
+      break;
+    }
+  }
+  // check if we didn't get an entry
+  if (i == MAX_MAPS) {
+    cprintf("No maps remaining!\n");
+    return NULL;
+  }
 
   // Force mappings
   for (int i = 0; i < numPages; i++) {
@@ -34,4 +52,25 @@ void* mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset) {
 
   // strcpy(mapva, "test");
   return mapva;
+}
+
+int munmap(void *addr, size_t length) {
+  int index = -1;
+  for (int i = 0; i < MAX_MAPS; i++) {
+    if (mmap_data[i].present && mmap_data[i].addr == addr) {
+      index = i;
+      break;
+    }
+  }
+  if (index == -1) {
+    panic("Tried to unmap nonexisting mapping!");
+  }
+
+  for(int i = 0; i < mmap_data[index].len / PGSIZE; i++) {
+    sys_page_unmap(0, mmap_data[index].addr + PGSIZE * i);
+  }
+
+  mmap_data[index].present = false;
+
+  return 0;
 }

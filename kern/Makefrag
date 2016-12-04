@@ -93,7 +93,12 @@ KERN_BINFILES +=	user/testpteshare \
 			user/testkbd \
 			user/testshell
 
-KERN_BINFILES += user/testmmap1
+KERN_BINFILES += user/testmmap1 \
+                 user/testmmap2 \
+                 user/testmmap3 \
+                 user/testmmap4 \
+                 user/testmmap5 \
+                 user/testmmap6 \
 
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
 KERN_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
