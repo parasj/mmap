@@ -455,6 +455,62 @@ static int sys_renice(int32_t newNice) {
   return 0;
 }
 
+// Saves a block of memory using the PTE_RSV flag.
+// Returns -E_INVAL if we could not find a block large enough, or if you specified PTE_P
+static int
+sys_page_save(envid_t envid, void *va, int num_of_pages, int perm)
+{
+  void *retva;
+  int counter;
+  struct Env *e;
+  struct PageInfo *pi;
+  pte_t *pte;
+
+  // We MUST NOT SET THE PTE_P FLAG, or we will misinterpret this block later.
+  if(perm&PTE_P)
+    return -E_INVAL;
+  perm |= PTE_SAV;
+
+  // Check that the environment id is correct
+  if(envid2env(envid, &e, 1) != 0)
+    return -E_BAD_ENV;
+
+  // Sanity check the virtual address
+  if(va) {
+    va = ROUNDDOWN(va, PGSIZE);
+  } else {
+    // Give va a lower bound to start at
+    va = (void*) UTEXT;
+  }
+
+  // Scan the memory for free pages
+  counter = 0;
+  while (counter < num_of_pages) {
+    if((uint32_t)va >= UTOP) {
+      cprintf("va out of bound. fail.\n");
+      return -E_INVAL;
+    }
+
+    // Test free pages
+    if((pte = pgdir_walk(e->env_pgdir, va, 0)) == NULL || *pte == 0) {
+      counter++;
+    } else {
+      counter = 0;
+    }
+    va += PGSIZE;
+  }
+
+  va -= num_of_pages * PGSIZE;
+  retva = va;
+  for (counter = 0; counter < num_of_pages; counter++, va += PGSIZE) {
+    pte = pgdir_walk(e->env_pgdir, va, 1);
+    *pte = perm;
+  }
+
+  // Success on all pages, return the start of the block
+  return (int)retva; // need casting when used
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -495,6 +551,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
     return sys_ipc_recv((void *) a1);
   } else if (syscallno== SYS_env_set_trapframe) {
     return sys_env_set_trapframe(a1, (struct Trapframe*)a2);
+  } else if (syscallno == SYS_page_save) {
+    return sys_page_save(a1, (void *)a2, a3, a4);
   } else {
     panic("syscall not implemented");
     return -E_INVAL;

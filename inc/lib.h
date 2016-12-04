@@ -55,6 +55,8 @@ int     sys_env_set_pgfault_upcall(envid_t env, void *upcall);
 int     sys_page_alloc(envid_t env, void *pg, int perm);
 int     sys_page_map(envid_t src_env, void *src_pg,
                      envid_t dst_env, void *dst_pg, int perm);
+
+int sys_page_save(envid_t envid, void *va, int num_of_pages, int perm);
 int     sys_page_unmap(envid_t env, void *pg);
 int     sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int     sys_ipc_recv(void *rcv_pg);
@@ -120,6 +122,13 @@ int     pipeisclosed(int pipefd);
 
 // wait.c
 void    wait(envid_t env);
+
+
+
+
+void* mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset);
+#define MAP_PRIVATE	0x0000
+#define MAP_SHARED	0x0001
 
 /* File open modes */
 #define O_RDONLY        0x0000          /* open for reading only */

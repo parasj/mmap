@@ -73,16 +73,16 @@ sys_yield(void)
   syscall(SYS_yield, 0, 0, 0, 0, 0, 0);
 }
 
-int
-sys_page_alloc(envid_t envid, void *va, int perm)
-{
+int sys_page_alloc(envid_t envid, void *va, int perm) {
   return syscall(SYS_page_alloc, 1, envid, (uint32_t)va, perm, 0, 0);
 }
 
-int
-sys_page_map(envid_t srcenv, void *srcva, envid_t dstenv, void *dstva, int perm)
-{
+int sys_page_map(envid_t srcenv, void *srcva, envid_t dstenv, void *dstva, int perm) {
   return syscall(SYS_page_map, 1, srcenv, (uint32_t)srcva, dstenv, (uint32_t)dstva, perm);
+}
+
+int sys_page_save(envid_t envid, void *va, int pgnum, int perm) {
+  return syscall(SYS_page_save, 0, envid, (uint32_t)va, pgnum, perm, 0);
 }
 
 int
