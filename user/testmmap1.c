@@ -26,4 +26,6 @@ umain(int argc, char **argv)
 
   content = (char*) mmaped_addr;
   cprintf("=> Read from mmapped region:\n\t%30s\n", content);
+  munmap(mmaped_addr, length);
+  cprintf("=> Read from mmapped region (pgfault expected) :\n\t%30s\n", content);
 }
