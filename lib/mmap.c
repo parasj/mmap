@@ -66,8 +66,16 @@ int munmap(void *addr, size_t length) {
     panic("Tried to unmap nonexisting mapping!");
   }
 
+
   for(int i = 0; i < mmap_data[index].len / PGSIZE; i++) {
-    sys_page_unmap(0, mmap_data[index].addr + PGSIZE * i);
+    void* toUnmap = mmap_data[index].addr + PGSIZE * i;
+
+    // Write back before unmapping
+    // seek(mmap_data[index].fd, 0);
+    // write(mmap_data[index].fd, toUnmap, PGSIZE);
+
+    // Unmap
+    sys_page_unmap(0, toUnmap);
   }
 
   mmap_data[index].present = false;
