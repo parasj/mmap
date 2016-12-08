@@ -42,7 +42,7 @@ void* mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset) {
     panic("Shared maps not supported yet!");
   }
 
-  int numPages = len/PGSIZE;
+  int numPages = ROUNDUP(len, PGSIZE)/PGSIZE;
   void* mapva = (void*)sys_page_save(0, addr, numPages, PTE_SAV);
 
   for (i = 0; i < MAX_MAPS; i++) {
