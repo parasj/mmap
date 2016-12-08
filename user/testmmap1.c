@@ -24,8 +24,17 @@ umain(int argc, char **argv)
   length = PGSIZE;
   mmaped_addr = mmap(NULL, length, 0, MAP_PRIVATE, r_open, (off_t) 0);
 
+  // TODO cause this to fail, rather than working
+  cprintf("%s\n", (char*)0xDeadBeef);
+  cprintf("%s\n", (char*)0xCafeBffe);
+
+
   content = (char*) mmaped_addr;
-  cprintf("=> Read from mmapped region:\n\t%30s\n", content);
-  munmap(mmaped_addr, length);
-  cprintf("=> Read from mmapped region (pgfault expected) :\n\t%30s\n", content);
+
+  // Read from second page first to test dynamic loading
+  cprintf("=> Read from mmapped region:\n%30s\n", (char*)(mmaped_addr + PGSIZE + 1));
+
+  cprintf("=> Read from mmapped region:\n%30s\n", content);
+  // munmap(mmaped_addr, length);
+  // cprintf("=> Read from mmapped region (pgfault expected) :\n\t%30s\n", content);
 }

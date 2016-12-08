@@ -444,10 +444,10 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
   pte_t* pgtbl = &pgdir[dir];
   pte_t pgFrame = pgtbl[dir];
 
-	if (!(*pgtbl & PTE_P) && !create)
+	if (!(*pgtbl & (PTE_P | PTE_SAV)) && !create)
   		return NULL;
 
-  if (create && (!(*pgtbl & PTE_P))) {
+  if (create && (!(*pgtbl & (PTE_SAV | PTE_P)))) {
     // Create and place a pte in pgFrame
     struct PageInfo* pgInfo = page_alloc(ALLOC_ZERO);
     if (!pgInfo) {

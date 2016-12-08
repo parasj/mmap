@@ -5,6 +5,32 @@
 
 volatile struct map_dat mmap_data[MAX_MAPS] = {0};
 
+void
+mmap_handler(struct UTrapframe *utf)
+{
+  int r;
+  int index = 0;
+  void *addr = ROUNDDOWN((void*)utf->utf_fault_va, PGSIZE);
+
+  cprintf("READING FILE INTO %x\n", addr);
+
+  for (int i = 0; i < MAX_MAPS; i++) {
+    if (mmap_data[i].present && addr >= mmap_data[i].addr && addr <= mmap_data[i].addr + mmap_data[i].len) {
+      index = i;
+      break;
+    }
+  }
+  if (index == -1) {
+    panic("Tried to access nonexisting mapping! (or you caused a pgfault!)");
+  }
+
+  if ((r = sys_page_alloc(0, ROUNDDOWN(addr, PGSIZE), PTE_P|PTE_U|PTE_W)) < 0)
+    panic("allocating at %x in page fault handler: %e", addr, r);
+
+  seek(mmap_data[index].fd, addr - mmap_data[index].addr);
+  read(mmap_data[index].fd, (void*)addr, PGSIZE);
+}
+
 void* mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset) {
 
   int entry, i, r;
@@ -33,17 +59,19 @@ void* mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset) {
     cprintf("No maps remaining!\n");
     return NULL;
   }
+  set_pgfault_handler(mmap_handler);
 
-  // Force mappings
-  for (int i = 0; i < numPages; i++) {
-    if (sys_page_alloc(0, (mapva + PGSIZE * i), PTE_U | PTE_P |PTE_W) < 0) {
-      panic("Error allocating file pages");
-    }
-  }
+  // // Force mappings
+  // for (int i = 0; i < numPages; i++) {
+  //   if (sys_page_alloc(0, (mapva + PGSIZE * i), PTE_U | PTE_P |PTE_W) < 0) {
+  //     panic("Error allocating file pages");
+  //   }
+  // }
 
   // Read entire file into memory
   // read(fd, mapva, len);
-  read(fd, mapva, numPages * PGSIZE);
+  // read(fd, mapva, numPages * PGSIZE);
+
 
   if (mapva < 0) {
     cprintf("Failed to map page\n");
