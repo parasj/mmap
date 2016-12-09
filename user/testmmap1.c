@@ -16,7 +16,7 @@ umain(int argc, char **argv)
   char fread_buf[512];
 
   // First, open file 'lorem' and get the file id.
-  if ((r_open = open("/lorem", O_RDONLY)) < 0)
+  if ((r_open = open("/lorem", O_RDWR)) < 0)
     panic("mmap(): opening file failed, ERROR CODE: %d \n", r_open);
 
   // Start testing.
@@ -31,10 +31,10 @@ umain(int argc, char **argv)
 
   content = (char*) mmaped_addr;
 
-  // Read from second page first to test dynamic loading
-  cprintf("=> Read from mmapped region:\n%30s\n", (char*)(mmaped_addr + PGSIZE + 1));
+  *content = 'z';
 
+  // Read from second page first to test dynamic loading
+  // cprintf("=> Read from mmapped region:\n%30s\n", (char*)(mmaped_addr + PGSIZE + 1));
   cprintf("=> Read from mmapped region:\n%30s\n", content);
-  // munmap(mmaped_addr, length);
-  // cprintf("=> Read from mmapped region (pgfault expected) :\n\t%30s\n", content);
+  munmap(mmaped_addr, length);
 }

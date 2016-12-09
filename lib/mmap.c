@@ -21,7 +21,6 @@ mmap_handler(struct UTrapframe *utf)
     }
   }
   if (index == -1) {
-    // Cause pagefault again, not our problem.
     cprintf("Tried to access nonexisting mapping! (or you caused a pgfault!)\n");
     sys_env_destroy(0);
     panic("Tried to access nonexisting mapping! (or you caused a pgfault!)");
@@ -101,9 +100,16 @@ int munmap(void *addr, size_t length) {
   for(int i = 0; i < mmap_data[index].len / PGSIZE; i++) {
     void* toUnmap = mmap_data[index].addr + PGSIZE * i;
 
+
+    struct Fd* fd;
+    if (fd_lookup(mmap_data[index].fd, &fd) < 0)
+      return -1;
+    if ((fd->fd_omode & O_ACCMODE) == O_WRONLY || (fd->fd_omode & O_ACCMODE) == O_RDWR) {
+      // Write back mapping
+      seek(mmap_data[index].fd, 0);
+      write(mmap_data[index].fd, toUnmap, PGSIZE);
+    }
     // Write back before unmapping
-    // seek(mmap_data[index].fd, 0);
-    // write(mmap_data[index].fd, toUnmap, PGSIZE);
 
     // Unmap
     sys_page_unmap(0, toUnmap);
