@@ -1,6 +1,62 @@
 
-#+TITLE: MMAP
-#+AUTHOR: Jay Kamat
+#+TITLE: Basic MMAP On JOS
+#+AUTHOR: Jay Kamat, Nick, Paras, Ojan
 #+EMAIL: jaygkamat@gmail.com
 
 * Implementation of mmap on JOS
+** COMPILING
+
+#+BEGIN_SRC shell
+make clean
+make
+#+END_SRC
+
+** TESTING
+
+Run the following commands to test our JOS MMAP implementation
+
+#+BEGIN_SRC shell
+  # Basic mmap
+  make run-testmmap1-nox
+  # Dynamic Loading test
+  make run-testmmap2-nox
+  # Test pgflt on access after unmap
+  make run-testmmap3-nox
+  # Test write back if writable file
+  make run-testmmap4-nox
+#+END_SRC
+
+** Implementation
+
+The main implementation is in mmap.c
+
+See:
+- [[file:lib/mmap.c::void*%20mmap(void*%20addr,%20size_t%20len,%20int%20prot,%20int%20flags,%20int%20fd,%20off_t%20offset)%20{][mmap function definition]]
+- [[file:lib/mmap.c::mmap_handler(struct%20UTrapframe%20*utf)][mmap pgflt handler]]
+- [[file:kern/syscall.c::sys_page_save(envid_t%20envid,%20void%20*va,%20int%20num_of_pages,%20int%20perm)][Mechanism for saving pages]]
+
+** Sample mmap call
+#+BEGIN_SRC c
+  struct Fd *fd;
+  int r_open;
+
+  size_t length;
+  void *mmaped_addr;
+
+  char *content;
+  char fread_buf[512];
+
+  // First, open file 'lorem' and get the file id.
+  if ((r_open = open("/lorem", O_RDONLY)) < 0)
+    panic("mmap(): opening file failed, ERROR CODE: %d \n", r_open);
+
+  // Start testing.
+  cprintf("\nTest mmaping\n");
+  length = PGSIZE;
+  mmaped_addr = mmap(NULL, length, 0, MAP_PRIVATE, r_open, (off_t) 0);
+
+  content = (char*) mmaped_addr;
+
+  cprintf("=> Read from mmapped region:\n%30s\n", content);
+  munmap(mmaped_addr, length);
+#+END_SRC
