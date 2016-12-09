@@ -5,39 +5,29 @@
 void
 umain(int argc, char **argv)
 {
-	// mmap(void *addr, size_t len, int prot, int flags, int fd_num, off_t off)
-	int fileid;
-	struct Fd *fd;
-	int r_open;
+  // mmap(void *addr, size_t len, int prot, int flags, int fd_num, off_t off)
+  struct Fd *fd;
+  int r_open;
 
-	size_t length;
-	void *mmaped_addr;
+  size_t length;
+  void *mmaped_addr;
 
-	char *content;
-	char fread_buf[512];
+  char *content;
+  char fread_buf[512];
 
-	cprintf("\nRunning testmmap...\n");
-	// First, open file 'lorem' and get the file id.
-	if ((r_open = open("/lorem", O_RDONLY)) < 0)
-		panic("mmap(): opening file failed, ERROR CODE: %d \n", r_open);
-	fileid = r_open;
+  // First, open file 'lorem' and get the file id.
+  if ((r_open = open("/lorembig", O_RDONLY)) < 0)
+    panic("mmap(): opening file failed, ERROR CODE: %d \n", r_open);
 
-	// Start testing.
-	cprintf("\nTest mmaping file as SHARED, read from it, print out the content.\n"
-		"Change some content, read the file again and check the content.\n");
-	length = 500;
-	mmaped_addr = mmap(NULL, length, PTE_W, MAP_SHARED, r_open, (off_t) 0);
-	content = (char *) mmaped_addr;
-	cprintf("=> Read from mmapped region:\n\t%30s\n", content);
+  // Start testing.
+  cprintf("\nTest mmaping\n");
+  length=PGSIZE * 4;
+  mmaped_addr = mmap(NULL, length, 0, MAP_PRIVATE, r_open, (off_t) 0);
 
-	cprintf("=> Now make some changes to file...\n");
-	content[0] = '7';
+  content = (char*) mmaped_addr;
 
-	cprintf("=> Now read from the mmaped region...\n");
-	cprintf("\t%30s\n", content);
-
-	cprintf("=> Now read directly from the FS...\n");
-	cprintf("=> Correct behavior shows same contents b/c of SHARED mapping.\n");
-	read(r_open, fread_buf, length);
-	cprintf((char *) fread_buf);
+  // Read from second page first to test dynamic loading
+  cprintf("=> Read from mmapped (post) region:\n%30s\n", (char*)(mmaped_addr + PGSIZE * 4 + 1));
+  cprintf("=> Read from mmapped region:\n%30s\n", content);
+  munmap(mmaped_addr, length);
 }

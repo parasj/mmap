@@ -16,22 +16,15 @@ umain(int argc, char **argv)
   char fread_buf[512];
 
   // First, open file 'lorem' and get the file id.
-  if ((r_open = open("/lorem", O_RDWR)) < 0)
+  if ((r_open = open("/lorem", O_RDONLY)) < 0)
     panic("mmap(): opening file failed, ERROR CODE: %d \n", r_open);
 
   // Start testing.
-  cprintf("\nTest mmaping file as PRIVATE, read from it, and print out the content.\n");
+  cprintf("\nTest mmaping\n");
   length = PGSIZE;
   mmaped_addr = mmap(NULL, length, 0, MAP_PRIVATE, r_open, (off_t) 0);
 
-  // // TODO cause this to fail, rather than working
-  // cprintf("%s\n", (char*)0xDeadBeef);
-  // cprintf("%s\n", (char*)0xCafeBffe);
-
-
   content = (char*) mmaped_addr;
-
-  *content = 'z';
 
   // Read from second page first to test dynamic loading
   // cprintf("=> Read from mmapped region:\n%30s\n", (char*)(mmaped_addr + PGSIZE + 1));

@@ -33,6 +33,7 @@ USERAPPS :=		$(USERAPPS) \
 
 FSIMGTXTFILES :=	$(FSIMGTXTFILES) \
 			fs/lorem \
+			fs/lorembig \
 			fs/script \
 			fs/testshell.key \
 			fs/testshell.sh

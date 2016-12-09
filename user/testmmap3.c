@@ -28,4 +28,10 @@ umain(int argc, char **argv)
 	mmaped_addr = mmap(NULL, length, 0, MAP_PRIVATE, r_open, (off_t) 0);
 	content = (char *) mmaped_addr;
 	cprintf("Read from mmapped region:\n\t%30s\n", content);
+
+  munmap(mmaped_addr, length);
+
+
+  cprintf("ACCESSING INVALID MEMORY: SHOULD CAUSE A PGFAULT WARNING FROM THE MMAP HANDLER.\n\n");
+	cprintf("Read from mmapped region:\n\t%30s\n", content);
 }
