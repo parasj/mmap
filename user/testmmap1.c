@@ -24,9 +24,9 @@ umain(int argc, char **argv)
   length = PGSIZE;
   mmaped_addr = mmap(NULL, length, 0, MAP_PRIVATE, r_open, (off_t) 0);
 
-  // TODO cause this to fail, rather than working
-  cprintf("%s\n", (char*)0xDeadBeef);
-  cprintf("%s\n", (char*)0xCafeBffe);
+  // // TODO cause this to fail, rather than working
+  // cprintf("%s\n", (char*)0xDeadBeef);
+  // cprintf("%s\n", (char*)0xCafeBffe);
 
 
   content = (char*) mmaped_addr;

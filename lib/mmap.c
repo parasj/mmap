@@ -9,7 +9,7 @@ void
 mmap_handler(struct UTrapframe *utf)
 {
   int r;
-  int index = 0;
+  int index = -1;
   void *addr = ROUNDDOWN((void*)utf->utf_fault_va, PGSIZE);
 
   cprintf("READING FILE INTO %x\n", addr);
@@ -21,6 +21,7 @@ mmap_handler(struct UTrapframe *utf)
     }
   }
   if (index == -1) {
+    // Cause pagefault again, not our problem.
     panic("Tried to access nonexisting mapping! (or you caused a pgfault!)");
   }
 
