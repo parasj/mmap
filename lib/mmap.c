@@ -22,6 +22,8 @@ mmap_handler(struct UTrapframe *utf)
   }
   if (index == -1) {
     // Cause pagefault again, not our problem.
+    cprintf("Tried to access nonexisting mapping! (or you caused a pgfault!)\n");
+    sys_env_destroy(0);
     panic("Tried to access nonexisting mapping! (or you caused a pgfault!)");
   }
 
